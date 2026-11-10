@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F3B57">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ARC Volunteers">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<title>Adaptive Volunteer Sign-Up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  --navy: #1F3B57; --teal: #2E6E73; --teal-ink: #24595d;
+  --bg: #f3f5f7; --card: #ffffff; --ink: #24303c; --muted: #66737f; --line: #dde3e8;
+  --open-bg: #fbe9e9; --open-ink: #9C2A2A; --mine-bg: #e3f1e3; --mine-ink: #2E6E2E; --band: #e8eef3;
+  --shadow: 0 1px 2px rgba(20,35,50,.06), 0 2px 8px rgba(20,35,50,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1a24; --card: #17242f; --ink: #e4eaef; --muted: #9aa8b4; --line: #2a3a47;
+    --open-bg: #3a2224; --open-ink: #f2a7a7; --mine-bg: #1f3424; --mine-ink: #9fd8a3; --band: #1c2b37; --teal-ink: #7fc2c7;
+    --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 "IBM Plex Sans", system-ui, sans-serif; padding-bottom: env(safe-area-inset-bottom, 0); }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: var(--teal-ink); }
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+
+/* header */
+.top { background: var(--navy); color: #fff; padding: calc(env(safe-area-inset-top, 0) + 18px) 0 20px; }
+.top .wrap { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.kicker { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; opacity: .8; font-weight: 600; }
+h1 { font-family: "Big Shoulders Display", sans-serif; font-weight: 800; font-size: 40px; line-height: 1; margin: 4px 0 0; letter-spacing: .01em; }
+.who { display: flex; gap: 8px; align-items: center; }
+.chip-btn { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.28); color: #fff; border-radius: 999px; padding: 7px 14px; font-size: 14px; font-weight: 500; }
+.chip-btn:hover { background: rgba(255,255,255,.2); }
+
+/* my sign-ups */
+.mine { margin-top: -10px; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+.mine .panel { padding: 14px 16px; }
+.mine h2, .section-h { font-family: "Big Shoulders Display", sans-serif; font-weight: 700; font-size: 22px; margin: 0 0 6px; color: var(--navy); letter-spacing: .01em; }
+@media (prefers-color-scheme: dark) { .mine h2, .section-h, .date-h { color: #cfe0ee !important; } }
+.mine-list { list-style: none; margin: 0; padding: 0; }
+.mine-list li { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--line); }
+.mine-list li:first-child { border-top: 0; }
+.mine-when { font-weight: 600; }
+.mine-what { color: var(--muted); font-size: 14px; }
+.empty-note { color: var(--muted); font-size: 15px; margin: 0; }
+.intro { padding: 16px; margin-top: -10px; }
+.intro p { margin: 0 0 10px; }
+.intro p:last-child { margin: 0; }
+
+/* controls */
+.controls { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 12px 0 10px; border-bottom: 1px solid var(--line); margin-top: 14px; }
+.weeks { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.weeks::-webkit-scrollbar { display: none; }
+.week { flex: 0 0 auto; border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 6px 12px; text-align: left; line-height: 1.2; }
+.week b { display: block; font-size: 14px; }
+.week span { font-size: 12px; color: var(--muted); }
+.week[aria-pressed="true"] { background: var(--teal); border-color: var(--teal); color: #fff; }
+.week[aria-pressed="true"] span { color: rgba(255,255,255,.85); }
+.filters { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--card); }
+.seg button { border: 0; background: none; padding: 6px 12px; font-size: 14px; }
+.seg button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 12px; }
+.toggle input { accent-color: var(--teal); width: 16px; height: 16px; margin: 0; }
+
+/* days */
+.day { margin: 22px 0 0; }
+.date-h { font-family: "Big Shoulders Display", sans-serif; font-weight: 800; font-size: 26px; margin: 0 0 8px; color: var(--navy); }
+.date-h small { font-family: "IBM Plex Sans", sans-serif; font-size: 13px; font-weight: 600; color: var(--teal-ink); letter-spacing: .06em; text-transform: uppercase; margin-left: 8px; vertical-align: 3px; }
+.session { margin-bottom: 12px; overflow: hidden; }
+.sess-h { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: var(--band); border-bottom: 1px solid var(--line); }
+.sess-time { font-weight: 600; font-size: 17px; }
+.pill { font-size: 13px; font-weight: 600; border-radius: 999px; padding: 2px 10px; background: var(--open-bg); color: var(--open-ink); }
+.pill.full { background: var(--mine-bg); color: var(--mine-ink); }
+.pill.muted { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+.cancel-banner { padding: 12px 16px; color: var(--open-ink); font-weight: 600; }
+.slot { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+.slot:first-of-type { border-top: 0; }
+.slot .ico { flex: 0 0 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--band); color: var(--teal-ink); }
+.slot .ico svg { width: 20px; height: 20px; }
+.slot .info { flex: 1; min-width: 0; }
+.slot .role { font-weight: 600; }
+.slot .sub { font-size: 14px; color: var(--muted); }
+.level { display: inline-block; font-size: 12px; font-weight: 600; color: var(--teal-ink); border: 1px solid currentColor; border-radius: 6px; padding: 0 6px; margin-top: 3px; }
+.slot .act { flex: 0 0 auto; text-align: right; }
+.btn { border: 0; border-radius: 9px; padding: 9px 16px; font-weight: 600; font-size: 15px; background: var(--teal); color: #fff; min-height: 40px; }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .55; cursor: default; }
+.btn.ghost { background: transparent; color: var(--teal-ink); border: 1px solid var(--line); }
+.btn.danger { background: transparent; color: var(--open-ink); border: 1px solid var(--line); }
+.btn.small { padding: 6px 12px; min-height: 34px; font-size: 14px; }
+.taken { font-size: 14px; color: var(--muted); }
+.yours { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.yours .badge { background: var(--mine-bg); color: var(--mine-ink); font-weight: 600; font-size: 13px; border-radius: 999px; padding: 2px 10px; }
+.linkish { background: none; border: 0; padding: 0; color: var(--open-ink); font-size: 13px; text-decoration: underline; }
+.nothing { text-align: center; color: var(--muted); padding: 40px 16px; }
+.slot.past, .session.cancelled .slot { opacity: .55; }
+
+footer { color: var(--muted); font-size: 14px; padding: 30px 0 40px; text-align: center; }
+footer button { background: none; border: 0; color: var(--teal-ink); text-decoration: underline; padding: 0; font-size: 14px; }
+
+/* dialog */
+dialog { border: 0; border-radius: 14px; padding: 0; width: min(440px, calc(100vw - 24px)); background: var(--card); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+dialog::backdrop { background: rgba(10,20,30,.5); }
+.dlg { padding: 20px; }
+.dlg h3 { font-family: "Big Shoulders Display", sans-serif; font-size: 26px; margin: 0 0 6px; color: var(--navy); }
+@media (prefers-color-scheme: dark) { .dlg h3 { color: #cfe0ee; } }
+.dlg p { margin: 0 0 12px; }
+.dlg .summary { background: var(--band); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; font-size: 15px; }
+label.f { display: block; font-size: 14px; font-weight: 600; margin: 10px 0 4px; }
+label.f span { font-weight: 400; color: var(--muted); }
+.in { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); font-size: 16px; }
+.in:focus { outline: 2px solid var(--teal); outline-offset: 0; border-color: var(--teal); }
+.check { display: flex; gap: 10px; align-items: flex-start; margin: 14px 0 4px; font-size: 15px; }
+.check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--teal); }
+.row-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; flex-wrap: wrap; }
+.err { color: var(--open-ink); font-size: 14px; margin-top: 10px; min-height: 1em; }
+.alt { font-size: 14px; margin-top: 14px; color: var(--muted); }
+.alt button { background: none; border: 0; padding: 0; color: var(--teal-ink); text-decoration: underline; font-size: 14px; }
+
+.toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0) + 20px); transform: translateX(-50%) translateY(30px); opacity: 0; transition: .25s; background: var(--navy); color: #fff; padding: 12px 18px; border-radius: 10px; max-width: calc(100vw - 32px); box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 50; font-size: 15px; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateX(-50%); }
+.toast.bad { background: #8a2626; }
+.offline { background: var(--open-bg); color: var(--open-ink); text-align: center; padding: 8px; font-size: 14px; display: none; }
+.skeleton { height: 120px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); margin: 22px 0; opacity: .6; }
+@media (min-width: 640px) { h1 { font-size: 48px; } }
+</style>
+</head>
+<body>
+<div class="offline" id="offline">Can't reach the server right now. The page will retry automatically.</div>
+<header class="top">
+  <div class="wrap">
+    <div>
+      <div class="kicker" id="progName">Adaptive Rowing</div>
+      <h1>Volunteer Sign-Up</h1>
+    </div>
+    <div class="who" id="who"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="mine" id="mineBox"></section>
+
+  <div class="controls" id="controls">
+    <div class="weeks" id="weeks" role="group" aria-label="Choose a week"></div>
+    <div class="filters">
+      <label class="toggle"><input type="checkbox" id="openOnly"> Open spots only</label>
+      <div class="seg" role="group" aria-label="Type of spot">
+        <button data-role="all" aria-pressed="true">All</button>
+        <button data-role="row" aria-pressed="false">Rowing</button>
+        <button data-role="launch" aria-pressed="false">Launch</button>
+      </div>
+    </div>
+  </div>
+
+  <main id="days"><div class="skeleton"></div><div class="skeleton"></div></main>
+
+  <footer id="foot"></footer>
+</div>
+
+<dialog id="dlg"><div class="dlg" id="dlgBody"></div></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} },
+  };
+
+  // Personal link (?k=...) signs this device in, then is removed from the address bar.
+  const params = new URLSearchParams(location.search);
+  if (params.get('k')) {
+    store.set('arcVolKey', params.get('k'));
+    params.delete('k');
+    history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params : '') + location.hash);
+  }
+  let key = store.get('arcVolKey');
+  let data = null, week = null, roleFilter = store.get('arcRole') || 'all', openOnly = store.get('arcOpenOnly') === '1', busy = false;
+
+  const ICON_ROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20L16 8"/><path d="M15 4.5c1.5-1.5 4-1.2 4.8.2.8 1.4.3 3.6-1.3 4.6L16 8"/><path d="M3 15c3 2 6 2 9 0s6-2 9 0"/></svg>';
+  const ICON_LAUNCH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h18l-2.5 4.5H6z"/><path d="M8 14V9h6l2 5"/><path d="M11 9V6"/></svg>';
+
+  function toast(msg, bad) {
+    const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (bad ? ' bad' : '');
+    clearTimeout(toast.t); toast.t = setTimeout(() => (t.className = 'toast'), bad ? 5000 : 3200);
+  }
+
+  async function api(method, path, body) {
+    const r = await fetch('/api/' + path, { method, headers: body ? { 'content-type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+    let d = {}; try { d = await r.json(); } catch {}
+    if (!r.ok) { const e = new Error(d.error || 'Something went wrong. Please try again.'); e.status = r.status; throw e; }
+    return d;
+  }
+
+  async function refresh() {
+    try {
+      const d = await api('GET', 'schedule' + (key ? '?k=' + encodeURIComponent(key) : ''));
+      $('offline').style.display = 'none';
+      if (key && !d.me) { key = null; store.set('arcVolKey', null); }
+      data = d; render();
+    } catch (e) { $('offline').style.display = 'block'; if (!data) $('days').innerHTML = '<p class="nothing">Couldn\'t load the schedule. Check your connection.</p>'; }
+  }
+
+  /* ---------- helpers ---------- */
+  const isLaunch = (s) => /launch/i.test(s.boat) || /launch|safety/i.test(s.position);
+  const roleTitle = (s) => isLaunch(s) ? 'Launch safety observer' : `${s.position} seat${s.boat ? ' · ' + s.boat : ''}`;
+  const roleSub = (s) => isLaunch(s) ? 'Ride in the launch and keep watch over the crews' : (s.athlete ? 'Rowing with ' + s.athlete : 'Rowing partner');
+  const weekStart = (date) => { const d = new Date(date + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - d.getUTCDay()); return d.toISOString().slice(0, 10); };
+  const short = (date, o) => new Date(date + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', ...o });
+  const addDays = (date, n) => { const d = new Date(date + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const relDay = (date) => date === data.today ? 'Today' : date === addDays(data.today, 1) ? 'Tomorrow' : '';
+
+  /* ---------- render ---------- */
+  function render() {
+    document.title = `${data.program.name} · Volunteer Sign-Up`;
+    $('progName').textContent = data.program.name;
+    $('who').innerHTML = data.me
+      ? `<button class="chip-btn" id="meBtn" aria-label="Your settings">👤 ${esc(data.me.name.split(' ')[0])}</button>`
+      : `<button class="chip-btn" id="signInBtn">Sign in</button>`;
+    if (data.me) $('meBtn').onclick = openSettings; else $('signInBtn').onclick = () => openRegister(null);
+    renderMine(); renderWeeks(); renderDays(); renderFooter();
+  }
+
+  function renderMine() {
+    const box = $('mineBox');
+    if (!data.me) {
+      box.innerHTML = `<div class="panel intro"><p><b>Welcome!</b> Pick any open spot below and tap <b>Sign up</b>. The first time, we'll ask for your name and email so we can send you reminders <b>3 days before</b> and <b>the day before</b> you're on the water.</p>
+        <p class="alt" style="margin:0">Already signed up before? <button id="lostLink">Email me my link</button></p></div>`;
+      $('lostLink').onclick = openLostLink;
+      return;
+    }
+    const upcoming = data.mine.filter((m) => !m.past);
+    box.innerHTML = `<div class="panel"><h2>Your sign-ups</h2>${upcoming.length ? `<ul class="mine-list">${upcoming.map((m) => `
+      <li><div><div class="mine-when">${relDay(m.date) ? relDay(m.date) + ' · ' : ''}${esc(short(m.date, { weekday: 'short', month: 'short', day: 'numeric' }))}, ${esc(m.timeLabel)}</div>
+      <div class="mine-what">${esc(roleTitle(m))}${m.athlete && !isLaunch(m) ? ' with ' + esc(m.athlete) : ''}${m.cancelled ? ' · <b style="color:var(--open-ink)">Session cancelled: ' + esc(m.cancelled) + '</b>' : ''}</div></div>
+      <button class="btn danger small" data-release="${m.date}|${m.slotId}">Cancel</button></li>`).join('')}</ul>`
+      : `<p class="empty-note">You're not signed up for anything yet. Find an open spot below.</p>`}</div>`;
+    box.querySelectorAll('[data-release]').forEach((b) => (b.onclick = () => confirmRelease(...b.dataset.release.split('|'))));
+  }
+
+  function weeksList() {
+    const map = new Map();
+    for (const d of data.schedule) {
+      const ws = weekStart(d.date);
+      if (!map.has(ws)) map.set(ws, { start: ws, open: 0 });
+      for (const s of d.sessions) if (!s.cancelled && !s.past) map.get(ws).open += s.slots.filter((x) => x.status === 'open').length;
+    }
+    return [...map.values()];
+  }
+
+  function renderWeeks() {
+    const ws = weeksList();
+    if (!week || !ws.some((w) => w.start === week)) week = ws[0]?.start || null;
+    const thisWeek = weekStart(data.today);
+    $('weeks').innerHTML = ws.map((w) => {
+      const label = w.start === thisWeek ? 'This week' : w.start === addDays(thisWeek, 7) ? 'Next week' : 'Week of ' + short(w.start, { month: 'short', day: 'numeric' });
+      const range = short(w.start, { month: 'short', day: 'numeric' }) + '–' + short(addDays(w.start, 6), { day: 'numeric' });
+      return `<button class="week" aria-pressed="${w.start === week}" data-week="${w.start}"><b>${label}</b><span>${range} · ${w.open ? w.open + ' open' : 'all filled'}</span></button>`;
+    }).join('');
+    $('weeks').querySelectorAll('[data-week]').forEach((b) => (b.onclick = () => { week = b.dataset.week; renderWeeks(); renderDays(); }));
+    document.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.role === roleFilter));
+    $('openOnly').checked = openOnly;
+  }
+
+  function slotHtml(day, sess, s) {
+    let act;
+    if (sess.cancelled) act = '';
+    else if (s.status === 'mine') act = `<div class="yours"><span class="badge">✓ You're in</span>${sess.past ? '' : `<button class="linkish" data-release="${day.date}|${s.slotId}">Cancel</button>`}</div>`;
+    else if (s.status === 'taken') act = `<span class="taken">${esc(s.who)}</span>`;
+    else if (sess.past) act = `<span class="taken">Started</span>`;
+    else act = `<button class="btn" data-claim="${day.date}|${s.slotId}">Sign up</button>`;
+    return `<div class="slot${sess.past ? ' past' : ''}">
+      <div class="ico" aria-hidden="true">${isLaunch(s) ? ICON_LAUNCH : ICON_ROW}</div>
+      <div class="info"><div class="role">${esc(roleTitle(s))}</div><div class="sub">${esc(roleSub(s))}</div>${s.note && !isLaunch(s) ? `<span class="level">${esc(s.note)}</span>` : ''}</div>
+      <div class="act">${act}</div></div>`;
+  }
+
+  function renderDays() {
+    if (!data.schedule.length) {
+      const p = data.program;
+      $('days').innerHTML = `<p class="nothing">${p.seasonStart && p.seasonStart > data.today ? `Sign-ups open for the season starting ${esc(short(p.seasonStart, { month: 'long', day: 'numeric' }))}.` : 'There are no sessions on the schedule right now.'}</p>`;
+      return;
+    }
+    const days = data.schedule.filter((d) => weekStart(d.date) === week);
+    const myMine = new Set(data.mine.map((m) => m.date + '|' + m.time));
+    let html = '';
+    for (const d of days) {
+      let dayHtml = '';
+      for (const sess of d.sessions) {
+        let slots = sess.slots.filter((s) => roleFilter === 'all' || (roleFilter === 'launch') === isLaunch(s));
+        if (openOnly) slots = slots.filter((s) => s.status !== 'taken' && !(s.status === 'open' && (sess.past || sess.cancelled)));
+        if (openOnly && !slots.some((s) => s.status === 'open') && !myMine.has(d.date + '|' + sess.time)) continue;
+        if (!slots.length) continue;
+        const open = sess.slots.filter((s) => s.status === 'open').length;
+        const pill = sess.cancelled ? `<span class="pill muted">Cancelled</span>` : sess.past ? `<span class="pill muted">Started</span>` : open ? `<span class="pill">${open} of ${sess.slots.length} open</span>` : `<span class="pill full">Full</span>`;
+        dayHtml += `<div class="panel session${sess.cancelled ? ' cancelled' : ''}">
+          <div class="sess-h"><span class="sess-time">${esc(sess.label)}</span>${pill}</div>
+          ${sess.cancelled ? `<div class="cancel-banner">This session is cancelled: ${esc(sess.cancelled)}</div>` : ''}
+          ${slots.map((s) => slotHtml(d, sess, s)).join('')}</div>`;
+      }
+      if (dayHtml) html += `<section class="day"><h2 class="date-h">${esc(short(d.date, { weekday: 'long', month: 'short', day: 'numeric' }))}${relDay(d.date) ? `<small>${relDay(d.date)}</small>` : ''}</h2>${dayHtml}</section>`;
+    }
+    $('days').innerHTML = html || `<p class="nothing">${openOnly ? 'Every spot this week is filled. 🎉 Try another week.' : 'No sessions this week.'}</p>`;
+    $('days').querySelectorAll('[data-claim]').forEach((b) => (b.onclick = () => startClaim(...b.dataset.claim.split('|'))));
+    $('days').querySelectorAll('[data-release]').forEach((b) => (b.onclick = () => confirmRelease(...b.dataset.release.split('|'))));
+  }
+
+  function renderFooter() {
+    const p = data.program;
+    $('foot').innerHTML = `${p.coordinatorName || p.coordinatorEmail ? `Questions? Contact ${esc(p.coordinatorName || 'the coordinator')}${p.coordinatorEmail ? ` at <a href="mailto:${esc(p.coordinatorEmail)}">${esc(p.coordinatorEmail)}</a>` : ''}.<br>` : ''}
+      ${data.me ? '' : 'Already registered on another device? <button id="lost2">Email me my link</button>'}`;
+    if (!data.me) $('lost2').onclick = openLostLink;
+  }
+
+  /* ---------- lookup ---------- */
+  function findSlot(date, slotId) {
+    const d = data.schedule.find((x) => x.date === date);
+    for (const sess of d?.sessions || []) for (const s of sess.slots) if (s.slotId === slotId) return { d, sess, s };
+    return null;
+  }
+  const slotSummary = ({ d, sess, s }) => `<b>${esc(short(d.date, { weekday: 'long', month: 'short', day: 'numeric' }))}, ${esc(sess.label)}</b><br>${esc(roleTitle(s))}${s.athlete && !isLaunch(s) ? ' with ' + esc(s.athlete) : ''}${s.note && !isLaunch(s) ? `<br><span class="level">${esc(s.note)}</span>` : ''}`;
+
+  /* ---------- actions ---------- */
+  function dialog(html, wire) {
+    $('dlgBody').innerHTML = html;
+    const dlg = $('dlg');
+    if (!dlg.open) dlg.showModal();
+    $('dlgBody').querySelectorAll('[data-close]').forEach((b) => (b.onclick = () => dlg.close()));
+    wire && wire();
+  }
+  $('dlg').addEventListener('click', (e) => { if (e.target === $('dlg')) $('dlg').close(); });
+
+  async function startClaim(date, slotId) {
+    const f = findSlot(date, slotId); if (!f) return;
+    if (!data.me) return openRegister({ date, slotId });
+    dialog(`<h3>Sign up for this spot?</h3><div class="summary">${slotSummary(f)}</div>
+      <p style="font-size:14px;color:var(--muted)">We'll email a confirmation now and reminders 3 days before and the day before.</p>
+      <div class="err" id="err"></div>
+      <div class="row-btns"><button class="btn ghost" data-close>Not now</button><button class="btn" id="go">Sign me up</button></div>`, () => {
+      $('go').onclick = async () => {
+        $('go').disabled = true;
+        try { const r = await api('POST', 'claim', { k: key, date, slotId }); $('dlg').close(); toast(r.emailWarning ? "You're signed up! (" + r.emailWarning + ')' : "You're signed up! Check your email for a confirmation."); refresh(); }
+        catch (e) { $('err').textContent = e.message; $('go').disabled = false; if (e.status === 409) refresh(); }
+      };
+    });
+  }
+
+  function confirmRelease(date, slotId) {
+    const f = findSlot(date, slotId); if (!f) return;
+    const soon = (Date.parse(date) - Date.parse(data.today)) / 864e5 <= 3;
+    dialog(`<h3>Cancel this sign-up?</h3><div class="summary">${slotSummary(f)}</div>
+      ${soon ? `<p style="font-size:14px">This session is coming up soon. We'll let the coordinator know the spot is open again.</p>` : ''}
+      <div class="err" id="err"></div>
+      <div class="row-btns"><button class="btn ghost" data-close>Keep it</button><button class="btn danger" id="go">Yes, cancel</button></div>`, () => {
+      $('go').onclick = async () => {
+        $('go').disabled = true;
+        try { await api('POST', 'release', { k: key, date, slotId }); $('dlg').close(); toast('Your sign-up was cancelled.'); refresh(); }
+        catch (e) { $('err').textContent = e.message; $('go').disabled = false; }
+      };
+    });
+  }
+
+  function openRegister(pending) {
+    const f = pending ? findSlot(pending.date, pending.slotId) : null;
+    dialog(`<h3>${pending ? 'Almost there' : 'Volunteer sign-in'}</h3>
+      ${f ? `<div class="summary">${slotSummary(f)}</div>` : ''}
+      <p style="font-size:15px">${pending ? 'Tell us who you are so we can hold this spot and send your reminders.' : 'Tell us who you are. We\'ll email you a personal link for next time.'}</p>
+      <form id="regForm" novalidate>
+        <label class="f" for="rName">Your name</label><input class="in" id="rName" autocomplete="name" required>
+        <label class="f" for="rEmail">Email <span>(for reminders)</span></label><input class="in" id="rEmail" type="email" autocomplete="email" inputmode="email" required>
+        <label class="f" for="rPhone">Mobile phone <span>(optional, for the coordinator)</span></label><input class="in" id="rPhone" type="tel" autocomplete="tel">
+        <label class="check"><input type="checkbox" id="rAlerts" checked> <span>Also email me when spots are still open 3 days and 1 day before a session</span></label>
+        <div class="err" id="err"></div>
+        <div class="row-btns"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn" id="go">${pending ? 'Sign me up' : 'Continue'}</button></div>
+      </form>
+      <p class="alt">Registered before? <button id="lost">Email me my link instead</button></p>`, () => {
+      $('rName').focus();
+      $('lost').onclick = openLostLink;
+      $('regForm').onsubmit = async (e) => {
+        e.preventDefault(); $('go').disabled = true; $('err').textContent = '';
+        try {
+          const r = await api('POST', 'register', { name: $('rName').value, email: $('rEmail').value, phone: $('rPhone').value, alerts: $('rAlerts').checked });
+          if (r.existing) {
+            dialog(`<h3>Check your email</h3><p>${esc(r.message)}</p><p style="font-size:14px;color:var(--muted)">This keeps anyone else from making changes under your name.</p><div class="row-btns"><button class="btn" data-close>OK</button></div>`);
+            return;
+          }
+          key = r.key; store.set('arcVolKey', key);
+          if (pending) {
+            try { await api('POST', 'claim', { k: key, ...pending }); $('dlg').close(); toast("You're signed up! Check your email for a confirmation."); }
+            catch (err) { $('dlg').close(); toast(err.message, true); }
+          } else { $('dlg').close(); toast('Welcome! You can now sign up for spots.'); }
+          refresh();
+        } catch (err) { $('err').textContent = err.message; $('go').disabled = false; }
+      };
+    });
+  }
+
+  function openLostLink() {
+    dialog(`<h3>Email me my link</h3><p style="font-size:15px">Enter the email you signed up with. We'll send a link that signs you in on this device.</p>
+      <form id="lf" novalidate><label class="f" for="lEmail">Email</label><input class="in" id="lEmail" type="email" autocomplete="email" inputmode="email">
+      <div class="err" id="err"></div>
+      <div class="row-btns"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn" id="go">Send link</button></div></form>`, () => {
+      $('lEmail').focus();
+      $('lf').onsubmit = async (e) => {
+        e.preventDefault(); $('go').disabled = true;
+        try { const r = await api('POST', 'link', { email: $('lEmail').value }); dialog(`<h3>Check your email</h3><p>${esc(r.message)}</p><div class="row-btns"><button class="btn" data-close>OK</button></div>`); }
+        catch (err) { $('err').textContent = err.message; $('go').disabled = false; }
+      };
+    });
+  }
+
+  function openSettings() {
+    const m = data.me;
+    dialog(`<h3>Your details</h3>
+      <form id="sf" novalidate>
+        <label class="f" for="sName">Name</label><input class="in" id="sName" value="${esc(m.name)}">
+        <label class="f">Email</label><div style="padding:4px 0 2px">${esc(m.email)}</div>
+        <label class="f" for="sPhone">Mobile phone <span>(optional)</span></label><input class="in" id="sPhone" type="tel" value="${esc(m.phone || '')}">
+        <label class="check"><input type="checkbox" id="sAlerts" ${m.alerts ? 'checked' : ''}> <span>Email me when spots are still open 3 days and 1 day before a session</span></label>
+        <p style="font-size:13px;color:var(--muted);margin-top:8px">Reminders for spots you've signed up for always go out 3 days before and the day before.</p>
+        <div class="err" id="err"></div>
+        <div class="row-btns"><button type="button" class="btn ghost" id="out">Sign out on this device</button><button class="btn" id="go">Save</button></div>
+      </form>`, () => {
+      $('out').onclick = () => { key = null; store.set('arcVolKey', null); $('dlg').close(); toast('Signed out on this device.'); refresh(); };
+      $('sf').onsubmit = async (e) => {
+        e.preventDefault(); $('go').disabled = true;
+        try { await api('POST', 'profile', { k: key, name: $('sName').value, phone: $('sPhone').value, alerts: $('sAlerts').checked }); $('dlg').close(); toast('Saved.'); refresh(); }
+        catch (err) { $('err').textContent = err.message; $('go').disabled = false; }
+      };
+    });
+  }
+
+  /* ---------- filters ---------- */
+  document.querySelectorAll('.seg button').forEach((b) => (b.onclick = () => { roleFilter = b.dataset.role; store.set('arcRole', roleFilter); renderWeeks(); renderDays(); }));
+  $('openOnly').onchange = (e) => { openOnly = e.target.checked; store.set('arcOpenOnly', openOnly ? '1' : null); renderDays(); };
+
+  refresh();
+  setInterval(() => { if (!document.hidden && !$('dlg').open) refresh(); }, 30000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+})();
+</script>
+</body>
+</html>

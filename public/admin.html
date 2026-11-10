@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F3B57">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<title>Coordinator · Adaptive Volunteers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  --navy: #1F3B57; --teal: #2E6E73; --teal-ink: #24595d;
+  --bg: #f3f5f7; --card: #fff; --ink: #24303c; --muted: #66737f; --line: #dde3e8; --band: #e8eef3;
+  --open-bg: #fbe9e9; --open-ink: #9C2A2A; --ok-bg: #e3f1e3; --ok-ink: #2E6E2E;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0f1a24; --card: #17242f; --ink: #e4eaef; --muted: #9aa8b4; --line: #2a3a47; --band: #1c2b37; --open-bg: #3a2224; --open-ink: #f2a7a7; --ok-bg: #1f3424; --ok-ink: #9fd8a3; --teal-ink: #7fc2c7; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 "IBM Plex Sans", system-ui, sans-serif; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: var(--teal-ink); }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+.top { background: var(--navy); color: #fff; padding: 16px 0 0; }
+.top .row { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.kicker { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; opacity: .8; font-weight: 600; }
+h1 { font-family: "Big Shoulders Display", sans-serif; font-weight: 800; font-size: 34px; margin: 2px 0 0; line-height: 1; }
+.tabs { display: flex; gap: 2px; margin-top: 14px; overflow-x: auto; }
+.tab { background: none; border: 0; color: rgba(255,255,255,.75); padding: 10px 14px; font-weight: 600; border-radius: 8px 8px 0 0; white-space: nowrap; }
+.tab[aria-selected="true"] { background: var(--bg); color: var(--ink); }
+.btn { border: 0; border-radius: 8px; padding: 8px 14px; font-weight: 600; background: var(--teal); color: #fff; min-height: 36px; }
+.btn:disabled { opacity: .55; }
+.btn.ghost { background: var(--card); color: var(--teal-ink); border: 1px solid var(--line); }
+.btn.danger { background: var(--card); color: var(--open-ink); border: 1px solid var(--line); }
+.btn.sm { padding: 4px 10px; min-height: 30px; font-size: 13px; }
+.top .btn.ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,.35); }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin: 14px 0; }
+.ph { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--band); border-radius: 12px 12px 0 0; }
+.ph h3 { margin: 0; font-size: 16px; }
+.pb { padding: 12px 16px; }
+h2 { font-family: "Big Shoulders Display", sans-serif; font-size: 24px; margin: 22px 0 4px; color: var(--navy); }
+@media (prefers-color-scheme: dark) { h2 { color: #cfe0ee; } }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0 4px; align-items: center; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; }
+.stat b { font-size: 20px; display: block; line-height: 1.1; }
+.stat span { font-size: 12px; color: var(--muted); }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 8px 10px; border-top: 1px solid var(--line); vertical-align: middle; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); border-top: 0; }
+.open { color: var(--open-ink); font-weight: 700; }
+.pill { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 2px 9px; background: var(--open-bg); color: var(--open-ink); }
+.pill.ok { background: var(--ok-bg); color: var(--ok-ink); }
+.pill.mut { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+.muted { color: var(--muted); font-size: 13px; }
+.in, select.in { padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); min-width: 0; }
+.in.w { width: 100%; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 18px; }
+label.f { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+.gate { max-width: 380px; margin: 60px auto; }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%) translateY(30px); opacity: 0; transition: .25s; background: var(--navy); color: #fff; padding: 11px 18px; border-radius: 10px; max-width: calc(100vw - 32px); z-index: 50; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateX(-50%); }
+.toast.bad { background: #8a2626; }
+.err { color: var(--open-ink); margin-top: 8px; }
+.scroll { overflow-x: auto; }
+.sched td { padding: 5px 6px; }
+.sched .in { width: 100%; }
+.day-h { margin: 22px 0 6px; font-weight: 700; font-size: 18px; }
+.vol-who b { display: block; }
+.note-box { background: var(--band); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
+.cancelled-row { background: var(--open-bg); color: var(--open-ink); padding: 8px 16px; font-weight: 600; }
+dialog { border: 0; border-radius: 14px; padding: 20px; width: min(440px, calc(100vw - 24px)); background: var(--card); color: var(--ink); }
+dialog::backdrop { background: rgba(10,20,30,.5); }
+dialog h3 { margin: 0 0 10px; }
+.row-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+.check { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+@media (max-width: 640px) { .hide-sm { display: none; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="row">
+      <div><div class="kicker" id="prog">Adaptive Rowing</div><h1>Coordinator</h1></div>
+      <div style="display:flex;gap:8px;padding-bottom:4px"><a class="btn ghost sm" href="/" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center">Volunteer page ↗</a><button class="btn ghost sm" id="logout" hidden>Lock</button></div>
+    </div>
+    <nav class="tabs" id="tabs" role="tablist" hidden>
+      <button class="tab" data-tab="up" aria-selected="true">Upcoming</button>
+      <button class="tab" data-tab="vol" aria-selected="false">Volunteers</button>
+      <button class="tab" data-tab="sched" aria-selected="false">Weekly schedule</button>
+      <button class="tab" data-tab="set" aria-selected="false">Settings &amp; email</button>
+    </nav>
+  </div>
+</header>
+<main class="wrap" id="main"></main>
+<dialog id="dlg"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const ss = { get: (k) => { try { return sessionStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch {} } };
+  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const LSO = 'Launch Safety Observer';
+  let pass = ss.get('arcAdminPass'), data = null, tab = 'up', draft = null;
+
+  function toast(m, bad) { const t = $('toast'); t.textContent = m; t.className = 'toast show' + (bad ? ' bad' : ''); clearTimeout(toast.t); toast.t = setTimeout(() => (t.className = 'toast'), bad ? 6000 : 3500); }
+  async function api(method, path, body) {
+    const r = await fetch('/api/' + path, { method, headers: { 'x-admin-pass': pass || '', ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
+    let d = {}; try { d = await r.json(); } catch {}
+    if (r.status === 401) { pass = null; ss.set('arcAdminPass', null); gate('Wrong passcode.'); throw new Error('Wrong passcode.'); }
+    if (!r.ok) throw new Error(d.error || 'Something went wrong.');
+    return d;
+  }
+  const fmtTime = (t) => { let h = +t.slice(0, 2); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${t.slice(3)} ${ap}`; };
+  const roleText = (s) => /launch/i.test(s.boat) || /launch|safety/i.test(s.position) ? 'Launch safety observer' : `${s.boat ? s.boat + ' · ' : ''}${s.position}${s.athlete ? ' — ' + s.athlete : ''}`;
+  const warn = (r, ok) => r.emailWarning ? toast(ok + ' ' + r.emailWarning, true) : toast(ok);
+
+  function gate(msg) {
+    $('tabs').hidden = true; $('logout').hidden = true;
+    $('main').innerHTML = `<div class="panel gate"><div class="pb"><h2 style="margin-top:4px">Coordinator sign-in</h2>
+      <form id="gf"><label class="f" for="gp">Passcode</label><input class="in w" id="gp" type="password" autocomplete="current-password">
+      <div class="err">${esc(msg || '')}</div><div class="row-btns"><button class="btn">Open</button></div></form></div></div>`;
+    $('gp').focus();
+    $('gf').onsubmit = (e) => { e.preventDefault(); pass = $('gp').value; ss.set('arcAdminPass', pass); load(); };
+  }
+
+  async function load() {
+    try { data = await api('GET', 'admin/overview'); } catch (e) { if (pass) $('main').innerHTML = `<p class="err">${esc(e.message)}</p>`; return; }
+    $('tabs').hidden = false; $('logout').hidden = false;
+    $('prog').textContent = data.settings.programName;
+    render();
+  }
+  $('logout').onclick = () => { pass = null; ss.set('arcAdminPass', null); gate(); };
+  $('tabs').querySelectorAll('.tab').forEach((b) => (b.onclick = () => { tab = b.dataset.tab; render(); }));
+
+  function render() {
+    $('tabs').querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === tab));
+    ({ up: renderUpcoming, vol: renderVolunteers, sched: renderSchedule, set: renderSettings })[tab]();
+  }
+
+  /* ---------------- upcoming ---------------- */
+  function renderUpcoming() {
+    let open = 0, filled = 0, openWeek = 0;
+    const weekEnd = new Date(Date.parse(data.today) + 7 * 864e5).toISOString().slice(0, 10);
+    for (const d of data.schedule) for (const s of d.sessions) if (!s.cancelled && !s.past) for (const sl of s.slots) { if (sl.volunteer) filled++; else { open++; if (d.date < weekEnd) openWeek++; } }
+    let html = `<div class="toolbar">
+        <div class="stat"><b class="${openWeek ? 'open' : ''}">${openWeek}</b><span>open in next 7 days</span></div>
+        <div class="stat"><b>${open}</b><span>open, all ${data.settings.weeksAhead} weeks</span></div>
+        <div class="stat"><b>${filled}</b><span>filled</span></div>
+        <span style="flex:1"></span>
+        <button class="btn" id="blast">Email open spots to volunteers</button>
+        <a class="btn ghost" id="csv" href="#">Download CSV</a>
+      </div>
+      ${data.email.enabled ? '' : `<p class="note-box">⚠️ Email isn't set up yet, so reminders won't go out. See the <b>Settings &amp; email</b> tab.</p>`}`;
+    for (const d of data.schedule) {
+      html += `<div class="day-h">${esc(d.label)}</div>`;
+      for (const s of d.sessions) {
+        const o = s.slots.filter((x) => !x.volunteer).length;
+        html += `<div class="panel"><div class="ph"><h3>${esc(s.label)} <span class="pill ${s.cancelled || s.past ? 'mut' : o ? '' : 'ok'}">${s.cancelled ? 'Cancelled' : s.past ? 'Started' : o ? o + ' open' : 'Full'}</span></h3>
+          ${s.past ? '' : s.cancelled ? `<button class="btn ghost sm" data-uncancel="${d.date}|${s.time}">Restore session</button>` : `<button class="btn danger sm" data-cancel="${d.date}|${s.time}">Cancel session…</button>`}</div>
+          ${s.cancelled ? `<div class="cancelled-row">Cancelled: ${esc(s.cancelled)}</div>` : ''}
+          <div class="scroll"><table style="table-layout:fixed;min-width:560px"><colgroup><col style="width:42%"><col><col style="width:110px"></colgroup><tbody>${s.slots.map((sl) => `<tr>
+            <td>${esc(roleText(sl))}${sl.note && sl.athlete ? `<div class="muted">${esc(sl.note)}</div>` : ''}</td>
+            <td class="vol-who">${sl.volunteer ? `<b>${esc(sl.volunteer.name)}</b><span class="muted">${esc(sl.volunteer.email)}${sl.volunteer.phone ? ' · ' + esc(sl.volunteer.phone) : ''}</span>` : '<span class="open">OPEN</span>'}</td>
+            <td style="text-align:right;white-space:nowrap">${s.past ? '' : sl.volunteer ? `<button class="btn danger sm" data-remove="${d.date}|${sl.slotId}">Remove</button>` : `<button class="btn ghost sm" data-assign="${d.date}|${sl.slotId}">Assign…</button>`}</td>
+          </tr>`).join('')}</tbody></table></div></div>`;
+      }
+    }
+    if (!data.schedule.length) html += `<p class="muted">No sessions in the sign-up window. Check the season dates in Settings.</p>`;
+    $('main').innerHTML = html;
+    $('csv').onclick = async (e) => {
+      e.preventDefault();
+      try {
+        const r = await fetch('/api/admin/export', { headers: { 'x-admin-pass': pass } });
+        if (!r.ok) throw new Error('Export failed');
+        const blob = await r.blob(); const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = (r.headers.get('content-disposition') || '').match(/filename="(.+)"/)?.[1] || 'signups.csv'; a.click();
+      } catch (err) { toast(err.message, true); }
+    };
+    $('blast').onclick = () => modal(`<h3>Email open spots</h3><p>Send every volunteer who has open-spot alerts on a list of the spots still open.</p>
+      <label class="f" for="bd">Include sessions in the next</label><select class="in" id="bd"><option value="3">3 days</option><option value="7" selected>7 days</option><option value="14">14 days</option></select>
+      <div class="row-btns"><button class="btn ghost" data-close>Cancel</button><button class="btn" id="ok">Send</button></div>`, async () => {
+      const r = await api('POST', 'admin/blast', { days: +$('bd').value });
+      toast(r.message || `Sent to ${r.sent} volunteer${r.sent === 1 ? '' : 's'} (${r.open} open spot${r.open === 1 ? '' : 's'}).${r.failed ? ` ${r.failed} failed.` : ''}`);
+    });
+    $('main').querySelectorAll('[data-cancel]').forEach((b) => (b.onclick = () => {
+      const [date, time] = b.dataset.cancel.split('|');
+      modal(`<h3>Cancel ${esc(new Date(date + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'short', day: 'numeric' }))}, ${fmtTime(time)}?</h3>
+        <label class="f" for="cr">Reason (shown to volunteers)</label><input class="in w" id="cr" placeholder="e.g. High winds, Thanksgiving">
+        <label class="check"><input type="checkbox" id="cn" checked> Email the volunteers signed up for this session</label>
+        <p class="muted">Sign-ups are kept, so if you restore the session everyone is still on it. No reminders go out for cancelled sessions.</p>
+        <div class="row-btns"><button class="btn ghost" data-close>Back</button><button class="btn danger" id="ok">Cancel session</button></div>`, async () => {
+        const r = await api('POST', 'admin/cancel', { date, time, reason: $('cr').value, notify: $('cn').checked });
+        warn(r, `Session cancelled${r.notified ? `; ${r.notified} volunteer${r.notified > 1 ? 's' : ''} emailed` : ''}.`); await load();
+      });
+    }));
+    $('main').querySelectorAll('[data-uncancel]').forEach((b) => (b.onclick = async () => {
+      const [date, time] = b.dataset.uncancel.split('|');
+      try { await api('POST', 'admin/cancel', { date, time, cancelled: false }); toast('Session restored.'); load(); } catch (e) { toast(e.message, true); }
+    }));
+    $('main').querySelectorAll('[data-remove]').forEach((b) => (b.onclick = () => {
+      const [date, slotId] = b.dataset.remove.split('|');
+      modal(`<h3>Remove this volunteer?</h3><p>The spot will show as open again.</p><label class="check"><input type="checkbox" id="rn" checked> Email them about the change</label>
+        <div class="row-btns"><button class="btn ghost" data-close>Back</button><button class="btn danger" id="ok">Remove</button></div>`, async () => {
+        const r = await api('POST', 'admin/remove', { date, slotId, notify: $('rn').checked }); warn(r, 'Removed.'); await load();
+      });
+    }));
+    $('main').querySelectorAll('[data-assign]').forEach((b) => (b.onclick = () => {
+      const [date, slotId] = b.dataset.assign.split('|');
+      if (!data.volunteers.length) return toast('Add the volunteer on the Volunteers tab first.', true);
+      modal(`<h3>Assign a volunteer</h3><p class="muted">For people who call or text you instead of using the page.</p>
+        <label class="f" for="av">Volunteer</label><select class="in w" id="av">${data.volunteers.map((v) => `<option value="${esc(v.email)}">${esc(v.name)} (${esc(v.email)})</option>`).join('')}</select>
+        <label class="check"><input type="checkbox" id="an" checked> Email them a confirmation</label>
+        <div class="row-btns"><button class="btn ghost" data-close>Back</button><button class="btn" id="ok">Assign</button></div>`, async () => {
+        const r = await api('POST', 'admin/assign', { date, slotId, email: $('av').value, notify: $('an').checked }); warn(r, 'Assigned.'); await load();
+      });
+    }));
+  }
+
+  function modal(html, onOk) {
+    const d = $('dlg'); d.innerHTML = html + '<div class="err" id="merr"></div>'; d.showModal();
+    d.querySelectorAll('[data-close]').forEach((b) => (b.onclick = () => d.close()));
+    const ok = d.querySelector('#ok');
+    if (ok) ok.onclick = async () => { ok.disabled = true; try { await onOk(); d.close(); } catch (e) { $('merr').textContent = e.message; ok.disabled = false; } };
+  }
+
+  /* ---------------- volunteers ---------------- */
+  function renderVolunteers() {
+    const v = data.volunteers;
+    $('main').innerHTML = `<div class="toolbar"><div class="stat"><b>${v.length}</b><span>volunteers</span></div><div class="stat"><b>${v.filter((x) => x.alerts).length}</b><span>get open-spot alerts</span></div><span style="flex:1"></span><button class="btn" id="add">Add volunteer</button></div>
+      <div class="panel scroll"><table><thead><tr><th>Name</th><th>Email</th><th class="hide-sm">Phone</th><th>Upcoming</th><th class="hide-sm">Alerts</th><th></th></tr></thead><tbody>
+      ${v.map((x) => `<tr><td><b>${esc(x.name)}</b></td><td><a href="mailto:${esc(x.email)}">${esc(x.email)}</a></td><td class="hide-sm">${esc(x.phone || '')}</td><td>${x.upcoming}</td><td class="hide-sm">${x.alerts ? 'On' : 'Off'}</td>
+        <td style="white-space:nowrap;text-align:right"><button class="btn ghost sm" data-copy="${esc(x.key)}">Copy link</button> <button class="btn ghost sm" data-send="${esc(x.email)}">Email link</button> <button class="btn danger sm" data-del="${esc(x.email)}" aria-label="Delete">✕</button></td></tr>`).join('') || '<tr><td colspan="6" class="muted">No volunteers yet. Share the volunteer page link and they\'ll appear here as they sign up.</td></tr>'}
+      </tbody></table></div>
+      <p class="muted">Each volunteer has a personal link that signs them in. "Copy link" lets you paste it into a text message.</p>`;
+    $('add').onclick = () => modal(`<h3>Add a volunteer</h3>
+      <label class="f" for="nn">Name</label><input class="in w" id="nn"><div style="height:8px"></div>
+      <label class="f" for="ne">Email</label><input class="in w" id="ne" type="email"><div style="height:8px"></div>
+      <label class="f" for="np">Phone (optional)</label><input class="in w" id="np" type="tel">
+      <label class="check"><input type="checkbox" id="na" checked> Open-spot alerts</label>
+      <label class="check"><input type="checkbox" id="nw" checked> Email them their personal sign-up link now</label>
+      <div class="row-btns"><button class="btn ghost" data-close>Cancel</button><button class="btn" id="ok">Add</button></div>`, async () => {
+      const r = await api('POST', 'admin/volunteer', { name: $('nn').value, email: $('ne').value, phone: $('np').value, alerts: $('na').checked, sendWelcome: $('nw').checked });
+      warn(r, 'Volunteer added.'); await load();
+    });
+    $('main').querySelectorAll('[data-copy]').forEach((b) => (b.onclick = async () => {
+      const link = data.base + '/?k=' + encodeURIComponent(b.dataset.copy);
+      try { await navigator.clipboard.writeText(link); toast('Link copied.'); } catch { prompt('Copy this link:', link); }
+    }));
+    $('main').querySelectorAll('[data-send]').forEach((b) => (b.onclick = async () => { try { await api('POST', 'admin/send-link', { email: b.dataset.send }); toast('Link emailed.'); } catch (e) { toast(e.message, true); } }));
+    $('main').querySelectorAll('[data-del]').forEach((b) => (b.onclick = () => modal(`<h3>Delete ${esc(b.dataset.del)}?</h3><p>Their personal link will stop working.</p><div class="row-btns"><button class="btn ghost" data-close>Back</button><button class="btn danger" id="ok">Delete</button></div>`, async () => {
+      await api('POST', 'admin/volunteer-delete', { email: b.dataset.del }); toast('Deleted.'); await load();
+    })));
+  }
+
+  /* ---------------- weekly schedule ---------------- */
+  function renderSchedule() {
+    if (!draft) draft = data.slots.map((s) => ({ ...s }));
+    const sorted = draft.map((s, i) => ({ s, i })).sort((a, b) => a.s.day - b.s.day || a.s.time.localeCompare(b.s.time));
+    $('main').innerHTML = `<h2>Weekly schedule</h2><p class="muted">This repeats every week. Each row is one spot a volunteer can claim. The note shows next to the athlete's name (e.g. the bow level required).</p>
+      <div class="panel scroll"><table class="sched"><thead><tr><th>Day</th><th>Start</th><th>Boat</th><th>Position</th><th>Athlete</th><th>Note / bow level</th><th></th></tr></thead><tbody>
+      ${sorted.map(({ s, i }) => `<tr data-i="${i}">
+        <td><select class="in" data-f="day" style="min-width:125px">${DAYS.map((d, n) => `<option value="${n}" ${n === +s.day ? 'selected' : ''}>${d}</option>`).join('')}</select></td>
+        <td><input class="in" type="time" data-f="time" value="${esc(s.time)}" style="min-width:110px"></td>
+        <td><input class="in" data-f="boat" value="${esc(s.boat)}" style="min-width:70px" list="boats"></td>
+        <td><input class="in" data-f="position" value="${esc(s.position)}" style="min-width:150px" list="positions"></td>
+        <td><input class="in" data-f="athlete" value="${esc(s.athlete)}" style="min-width:130px"></td>
+        <td><input class="in" data-f="note" value="${esc(s.note)}" style="min-width:160px"></td>
+        <td><button class="btn danger sm" data-rm="${i}" aria-label="Delete row">✕</button></td></tr>`).join('')}
+      </tbody></table></div>
+      <datalist id="boats"><option>2x</option><option>1x</option><option>4x</option><option>Launch</option></datalist>
+      <datalist id="positions"><option>Bow</option><option>Stroke</option><option>2 Seat</option><option>3 Seat</option><option>${LSO}</option></datalist>
+      <div class="toolbar"><button class="btn ghost" id="addRow">+ Rowing spot</button><button class="btn ghost" id="addLaunch">+ Launch spot</button><span style="flex:1"></span><button class="btn ghost" id="reset">Discard changes</button><button class="btn" id="save">Save schedule</button></div>
+      <div class="err" id="serr"></div>`;
+    $('main').querySelectorAll('tr[data-i] [data-f]').forEach((el) => (el.oninput = () => {
+      const s = draft[+el.closest('tr').dataset.i]; s[el.dataset.f] = el.dataset.f === 'day' ? +el.value : el.value;
+    }));
+    $('main').querySelectorAll('[data-rm]').forEach((b) => (b.onclick = () => { draft.splice(+b.dataset.rm, 1); renderSchedule(); }));
+    const last = draft[draft.length - 1] || { day: 1, time: '08:00' };
+    $('addRow').onclick = () => { draft.push({ day: last.day, time: last.time, boat: '2x', position: 'Bow', athlete: '', note: 'Level 2 bow required' }); renderSchedule(); };
+    $('addLaunch').onclick = () => { draft.push({ day: last.day, time: last.time, boat: 'Launch', position: LSO, athlete: '', note: '' }); renderSchedule(); };
+    $('reset').onclick = () => { draft = null; renderSchedule(); };
+    $('save').onclick = async () => {
+      $('save').disabled = true; $('serr').textContent = '';
+      try { await api('POST', 'admin/slots', { slots: draft }); draft = null; toast('Schedule saved. The volunteer page is updated.'); await load(); }
+      catch (e) { $('serr').textContent = e.message; $('save').disabled = false; }
+    };
+  }
+
+  /* ---------------- settings ---------------- */
+  function renderSettings() {
+    const s = data.settings, e = data.email;
+    $('main').innerHTML = `<h2>Program settings</h2>
+      <div class="panel"><div class="pb"><form id="sf" class="grid">
+        <div><label class="f" for="pn">Program name</label><input class="in w" id="pn" value="${esc(s.programName)}"></div>
+        <div><label class="f" for="cn">Coordinator name</label><input class="in w" id="cn" value="${esc(s.coordinatorName)}"></div>
+        <div><label class="f" for="ce">Coordinator email</label><input class="in w" id="ce" type="email" value="${esc(s.coordinatorEmail)}"><div class="muted">Gets the daily status email and late-cancellation alerts. Volunteer replies go here.</div></div>
+        <div><label class="f" for="wa">Weeks open for sign-up</label><select class="in w" id="wa">${[1,2,3,4,6,8,12].map((n) => `<option ${n === +s.weeksAhead ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+        <div><label class="f" for="ss">Season starts <span class="muted">(optional)</span></label><input class="in w" id="ss" type="date" value="${esc(s.seasonStart)}"></div>
+        <div><label class="f" for="se">Season ends <span class="muted">(optional)</span></label><input class="in w" id="se" type="date" value="${esc(s.seasonEnd)}"></div>
+        <div style="grid-column:1/-1;display:flex;justify-content:flex-end"><button class="btn">Save settings</button></div>
+      </form></div></div>
+
+      <h2>Email reminders</h2>
+      <div class="panel"><div class="pb">
+        <p>Status: ${e.enabled ? `<span class="pill ok">Ready</span> sending from <b>${esc(e.from)}</b>` : `<span class="pill">Not set up</span> add <code>GMAIL_USER</code> and <code>GMAIL_APP_PASSWORD</code> in Netlify (see README), then redeploy.`}</p>
+        <div class="note-box">Every morning around <b>7 AM</b> (8 AM in summer):<br>
+          • Volunteers signed up for a session <b>tomorrow</b> or <b>in 3 days</b> get a reminder.<br>
+          • Volunteers with alerts on get a list of spots still open in those sessions.<br>
+          • You get a status email showing who's on each of those sessions and what's open.<br>
+          Cancelled sessions are skipped. Each person gets at most one reminder email a day.</div>
+        <div class="toolbar">
+          <input class="in" id="tt" type="email" placeholder="Send test to…" value="${esc(s.coordinatorEmail)}" style="min-width:220px">
+          <button class="btn ghost" id="test">Send test email</button>
+          <span style="flex:1"></span>
+          <button class="btn ghost" id="run">Run today's reminders now</button>
+        </div>
+        <p class="muted">"Run today's reminders now" sends whatever would go out this morning. It won't send anyone a second copy if the morning run already reached them.</p>
+      </div></div>`;
+    $('sf').onsubmit = async (ev) => {
+      ev.preventDefault();
+      try { await api('POST', 'admin/settings', { programName: $('pn').value, coordinatorName: $('cn').value, coordinatorEmail: $('ce').value, weeksAhead: +$('wa').value, seasonStart: $('ss').value, seasonEnd: $('se').value }); toast('Settings saved.'); load(); }
+      catch (err) { toast(err.message, true); }
+    };
+    $('test').onclick = async () => { try { const r = await api('POST', 'admin/test-email', { to: $('tt').value }); toast(r.message); } catch (err) { toast(err.message, true); } };
+    $('run').onclick = async () => {
+      $('run').disabled = true;
+      try {
+        const r = await api('POST', 'admin/run-reminders');
+        if (!r.ok) toast(r.error, true);
+        else toast(`Sent ${r.volunteerEmails} volunteer email${r.volunteerEmails === 1 ? '' : 's'}${r.coordinatorDigest ? ' + your status email' : ''}${r.skippedAlreadySent ? ` (${r.skippedAlreadySent} already sent today)` : ''}${r.failed.length ? `. ${r.failed.length} failed.` : '.'}`, r.failed.length > 0);
+      } catch (err) { toast(err.message, true); }
+      $('run').disabled = false;
+    };
+  }
+
+  pass ? load() : gate();
+})();
+</script>
+</body>
+</html>

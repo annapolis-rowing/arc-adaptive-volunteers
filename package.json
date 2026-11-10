@@ -1,0 +1,11 @@
+{
+  "name": "arc-adaptive-volunteers",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Volunteer sign-up and email reminders for the ARC Adaptive Rowing program",
+  "dependencies": {
+    "@netlify/blobs": "^11.1.0",
+    "nodemailer": "^7.0.0"
+  }
+}
