@@ -74,6 +74,11 @@ label.f { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px;
 dialog { border: 0; border-radius: 14px; padding: 20px; width: min(440px, calc(100vw - 24px)); background: var(--card); color: var(--ink); }
 dialog::backdrop { background: rgba(10,20,30,.5); }
 dialog h3 { margin: 0 0 10px; }
+dialog.wide { width: min(760px, calc(100vw - 24px)); }
+.ot-rows td { padding: 4px 4px; border: 0; }
+.ot-rows .in { width: 100%; }
+.pill.one { background: #e6eefb; color: #23466e; }
+@media (prefers-color-scheme: dark) { .pill.one { background: #22364d; color: #bcd3ee; } }
 .row-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 .check { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
 @media (max-width: 640px) { .hide-sm { display: none; } }
@@ -173,6 +178,7 @@ dialog h3 { margin: 0 0 10px; }
         <div class="stat"><b>${filled}</b><span>filled</span></div>
         <div class="stat"><b>${athWeek}</b><span>athlete sign-ups, next 7 days</span></div>
         <span style="flex:1"></span>
+        <button class="btn ghost" id="addOne">+ One-time session</button>
         <button class="btn" id="blast">Email open spots to volunteers</button>
         <a class="btn ghost" id="csv" href="#">Download CSV</a>
       </div>
@@ -181,8 +187,10 @@ dialog h3 { margin: 0 0 10px; }
       html += `<div class="day-h">${esc(d.label)}</div>`;
       for (const s of d.sessions) {
         const o = s.slots.filter((x) => !x.volunteer).length;
-        html += `<div class="panel"><div class="ph"><h3>${esc(s.label)} <span class="pill ${s.cancelled || s.past ? 'mut' : o ? '' : 'ok'}">${s.cancelled ? 'Cancelled' : s.past ? 'Started' : o ? o + ' open' : 'Full'}</span></h3>
-          ${s.past ? '' : s.cancelled ? `<button class="btn ghost sm" data-uncancel="${d.date}|${s.time}">Restore session</button>` : `<button class="btn danger sm" data-cancel="${d.date}|${s.time}">Cancel session…</button>`}</div>
+        const nobody = !s.slots.some((x) => x.volunteer) && !(s.athletes || []).length;
+        html += `<div class="panel"><div class="ph"><h3>${esc(s.label)} <span class="pill ${s.cancelled || s.past ? 'mut' : o ? '' : 'ok'}">${s.cancelled ? 'Cancelled' : s.past ? 'Started' : o ? o + ' open' : 'Full'}</span>${s.oneTime ? ' <span class="pill one">One-time</span>' : ''}</h3>
+          <span style="display:flex;gap:6px;flex-wrap:wrap">${s.past ? '' : s.cancelled ? `<button class="btn ghost sm" data-uncancel="${d.date}|${s.time}">Restore session</button>` : `<button class="btn ghost sm" data-move="${d.date}|${s.time}">Move…</button><button class="btn danger sm" data-cancel="${d.date}|${s.time}">Cancel session…</button>`}
+          ${s.oneTime && !s.past && nobody ? `<button class="btn danger sm" data-delone="${d.date}|${s.time}">Delete</button>` : ''}</span></div>
           ${s.cancelled ? `<div class="cancelled-row">Cancelled: ${esc(s.cancelled)}</div>` : ''}
           ${athBlock(d, s)}
           <div class="scroll"><table style="table-layout:fixed;min-width:560px"><colgroup><col style="width:42%"><col><col style="width:110px"></colgroup><tbody>${s.slots.map((sl) => `<tr>
@@ -209,6 +217,19 @@ dialog h3 { margin: 0 0 10px; }
       const r = await api('POST', 'admin/blast', { days: +$('bd').value });
       toast(r.message || `Sent to ${r.sent} volunteer${r.sent === 1 ? '' : 's'} (${r.open} open spot${r.open === 1 ? '' : 's'}).${r.failed ? ` ${r.failed} failed.` : ''}`);
     });
+    $('addOne').onclick = () => oneTimeDialog();
+    $('main').querySelectorAll('[data-move]').forEach((b) => (b.onclick = () => {
+      const [date, time] = b.dataset.move.split('|');
+      const sess = data.schedule.find((x) => x.date === date).sessions.find((x) => x.time === time);
+      oneTimeDialog({ date, time, slots: sess.slots, hasPeople: sess.slots.some((x) => x.volunteer) || (sess.athletes || []).length > 0 });
+    }));
+    $('main').querySelectorAll('[data-delone]').forEach((b) => (b.onclick = () => {
+      const [date, time] = b.dataset.delone.split('|');
+      modal(`<h3>Delete the one-time session on ${esc(longDate(date))}, ${fmtTime(time)}?</h3><p class="muted">It will disappear from the volunteer and athlete pages.</p>
+        <div class="row-btns"><button class="btn ghost" data-close>Back</button><button class="btn danger" id="ok">Delete</button></div>`, async () => {
+        await api('POST', 'admin/one-time-delete', { date, time }); toast('Deleted.'); await load();
+      });
+    }));
     $('main').querySelectorAll('[data-cancel]').forEach((b) => (b.onclick = () => {
       const [date, time] = b.dataset.cancel.split('|');
       modal(`<h3>Cancel ${esc(new Date(date + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'short', day: 'numeric' }))}, ${fmtTime(time)}?</h3>
@@ -245,8 +266,8 @@ dialog h3 { margin: 0 0 10px; }
     }));
   }
 
-  function modal(html, onOk) {
-    const d = $('dlg'); d.innerHTML = html + '<div class="err" id="merr"></div>'; d.showModal();
+  function modal(html, onOk, wide = false) {
+    const d = $('dlg'); d.className = wide ? 'wide' : ''; d.innerHTML = html + '<div class="err" id="merr"></div>'; d.showModal();
     d.querySelectorAll('[data-close]').forEach((b) => (b.onclick = () => d.close()));
     const ok = d.querySelector('#ok');
     if (ok) ok.onclick = async () => { ok.disabled = true; try { await onOk(); d.close(); } catch (e) { $('merr').textContent = e.message; ok.disabled = false; } };
@@ -261,6 +282,67 @@ dialog h3 { margin: 0 0 10px; }
     } catch (err) { toast(err.message, true); }
   }
   const longDate = (date) => new Date(date + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'short', day: 'numeric' });
+
+  /* ---------------- one-time sessions ---------------- */
+  // An extra practice on one date, or the new day/time for a moved practice.
+  // `from` = { date, time, slots, hasPeople } when moving an existing session.
+  function oneTimeDialog(from = null) {
+    const weekly = [];
+    for (const sl of data.slots) {
+      const k = sl.day + '|' + sl.time;
+      let g = weekly.find((x) => x.k === k);
+      if (!g) weekly.push(g = { k, day: sl.day, time: sl.time, slots: [] });
+      g.slots.push(sl);
+    }
+    weekly.sort((a, b) => a.day - b.day || a.time.localeCompare(b.time));
+    let rows = (from ? from.slots : []).map((x) => ({ boat: x.boat, position: x.position, athlete: x.athlete, note: x.note }));
+    const tmr = new Date(Date.parse(data.today + 'T12:00:00Z') + 864e5).toISOString().slice(0, 10);
+    modal(`<h3>${from ? `Move ${esc(longDate(from.date))}, ${fmtTime(from.time)}` : 'Add a one-time session'}</h3>
+      <p class="muted">${from ? 'Pick the new date and time. The spots are copied over. People signed up for the original are <b>not</b> moved; they get the cancellation email and can sign up again.' : 'For an extra practice on one date. It shows on the volunteer and athlete pages like any other session. The weekly schedule is not changed.'}</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div><label class="f" for="otd">Date</label><input class="in" type="date" id="otd" min="${data.today}" value="${from ? '' : tmr}"></div>
+        <div><label class="f" for="ott">Start time</label><input class="in" type="time" id="ott" value="${from ? from.time : '08:45'}"></div>
+        ${from ? '' : `<div style="flex:1;min-width:200px"><label class="f" for="otc">Copy spots from</label><select class="in w" id="otc"><option value="">Start blank</option>${weekly.map((g, i) => `<option value="${i}">${DAYS[g.day]} ${fmtTime(g.time)} (${g.slots.length} spot${g.slots.length > 1 ? 's' : ''})</option>`).join('')}</select></div>`}
+      </div>
+      <label class="f" style="margin-top:12px">Spots</label>
+      <div class="scroll"><table class="ot-rows"><thead><tr><th>Boat</th><th>Position</th><th>Athlete</th><th>Note / bow level</th><th></th></tr></thead><tbody id="otr"></tbody></table></div>
+      <div style="display:flex;gap:8px;margin-top:6px"><button class="btn ghost sm" id="otAddRow">+ Rowing spot</button><button class="btn ghost sm" id="otAddLaunch">+ Launch spot</button></div>
+      ${from ? `<label class="check"><input type="checkbox" id="otCancel" checked> Cancel the original session${from.hasPeople ? ' and email the people signed up for it' : ''}</label>` : ''}
+      <div class="row-btns"><button class="btn ghost" data-close>Back</button><button class="btn" id="ok">${from ? 'Move session' : 'Add session'}</button></div>`, async () => {
+      const date = $('otd').value, time = $('ott').value;
+      if (!date) throw new Error('Pick a date.');
+      if (from && date === from.date && time === from.time) throw new Error('Pick a different date or time.');
+      const r = await api('POST', 'admin/one-time', { date, time, slots: rows });
+      let msg = `Added ${r.label}.`;
+      if (from && $('otCancel').checked) {
+        const c = await api('POST', 'admin/cancel', { date: from.date, time: from.time, reason: 'Moved to ' + r.label, notify: true });
+        const told = (c.notified || 0) + (c.athletesNotified || 0);
+        msg = `Moved to ${r.label}.${told ? ` Emailed ${told} ${told > 1 ? 'people' : 'person'} about the change.` : ''}${c.emailWarning ? ' ' + c.emailWarning : ''}`;
+      }
+      toast(msg); await load();
+    }, true);
+    const draw = () => {
+      $('otr').innerHTML = rows.map((r, i) => `<tr data-i="${i}">
+        <td><input class="in" data-f="boat" value="${esc(r.boat)}" style="min-width:60px" list="otBoats"></td>
+        <td><input class="in" data-f="position" value="${esc(r.position)}" style="min-width:130px" list="otPos"></td>
+        <td><input class="in" data-f="athlete" value="${esc(r.athlete)}" style="min-width:110px"></td>
+        <td><input class="in" data-f="note" value="${esc(r.note)}" style="min-width:130px"></td>
+        <td><button class="btn danger sm" data-otrm="${i}" aria-label="Remove spot">✕</button></td></tr>`).join('') +
+        (rows.length ? '' : '<tr><td colspan="5" class="muted">No spots yet. Copy from a regular session or add spots.</td></tr>') +
+        `<datalist id="otBoats"><option>2x</option><option>1x</option><option>4x</option><option>Launch</option></datalist><datalist id="otPos"><option>Bow</option><option>Stroke</option><option>${LSO}</option></datalist>`;
+      $('otr').querySelectorAll('[data-f]').forEach((el) => (el.oninput = () => { rows[+el.closest('tr').dataset.i][el.dataset.f] = el.value; }));
+      $('otr').querySelectorAll('[data-otrm]').forEach((b) => (b.onclick = () => { rows.splice(+b.dataset.otrm, 1); draw(); }));
+    };
+    draw();
+    if (!from) $('otc').onchange = () => {
+      const g = weekly[+$('otc').value];
+      rows = g ? g.slots.map((x) => ({ boat: x.boat, position: x.position, athlete: x.athlete, note: x.note })) : [];
+      if (g) $('ott').value = g.time;
+      draw();
+    };
+    $('otAddRow').onclick = () => { rows.push({ boat: '2x', position: 'Bow', athlete: '', note: 'Level 2 bow required' }); draw(); };
+    $('otAddLaunch').onclick = () => { rows.push({ boat: 'Launch', position: LSO, athlete: '', note: '' }); draw(); };
+  }
 
   /* ---------------- athletes on the Upcoming tab ---------------- */
   // Information only: athlete sign-ups never change volunteer spots.

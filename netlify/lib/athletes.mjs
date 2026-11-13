@@ -12,7 +12,7 @@
 
 import {
   UserError, mutate, loadConfig, todayET, nowMinutesET, addDays, dow, isDate, isTime, toMin,
-  fmtTime, fmtDate, normEmail, newKey, shortName, windowDates, inSeason, sessionKey,
+  fmtTime, fmtDate, normEmail, newKey, shortName, windowDates, inSeason, sessionKey, slotsForDate,
 } from './core.mjs';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -111,15 +111,13 @@ export async function adminDeleteAthlete(store, id, now = new Date()) {
 
 /** Times on a date that have at least one rowing (non-launch) spot. Launch-only sessions aren't athlete sessions. */
 export function athleteTimes(cfg, date) {
-  const d = dow(date);
-  const times = new Set(cfg.slots.filter((s) => s.day === d && !isLaunchSlot(s)).map((s) => s.time));
+  const times = new Set(slotsForDate(cfg, date).filter((s) => !isLaunchSlot(s)).map((s) => s.time));
   return [...times].sort((a, b) => toMin(a) - toMin(b));
 }
 
 /** The athletes named on the weekly schedule for a session (who usually rows then). */
 function usualAthletes(cfg, date, time) {
-  const d = dow(date);
-  return [...new Set(cfg.slots.filter((s) => s.day === d && s.time === time && s.athlete).map((s) => s.athlete))];
+  return [...new Set(slotsForDate(cfg, date).filter((s) => s.time === time && s.athlete).map((s) => s.athlete))];
 }
 
 export async function loadAthDays(store, dates) {
@@ -163,7 +161,7 @@ export async function athleteSchedule(store, key, now = new Date()) {
     const sessions = times.map((time) => {
       const c = cfg.cancelled[sessionKey(date, time)];
       const reg = me ? (days[date].regs[time] || {})[me.id] : null;
-      const s = { time, label: fmtTime(time), cancelled: c ? c.reason || 'Cancelled' : null, past: isPast(date, time, now), registered: !!reg, note: reg ? reg.note || '' : '' };
+      const s = { time, label: fmtTime(time), oneTime: !slotsForDate(cfg, date).some((x) => x.time === time && !x.extra), cancelled: c ? c.reason || 'Cancelled' : null, past: isPast(date, time, now), registered: !!reg, note: reg ? reg.note || '' : '' };
       if (me) s.usual = usualAthletes(cfg, date, time).some((n) => n.toLowerCase() === me.name.toLowerCase());
       if (reg) mine.push({ date, dateLabel: fmtDate(date), ...s });
       return s;
@@ -313,6 +311,8 @@ export async function sessionAthletes(store, date, time) {
 
 /** Block weekly-schedule edits that would orphan upcoming athlete registrations. */
 export async function checkScheduleChange(store, newRows, now = new Date()) {
+  const cfg = await loadConfig(store);
+  const extraKeys = new Set((cfg.extras || []).filter((x) => !isLaunchSlot(x)).map((x) => `${x.date}|${x.time}`));
   const today = todayET(now);
   const dates = Array.from({ length: 84 }, (_, i) => addDays(today, i));
   const days = await loadAthDays(store, dates);
@@ -320,7 +320,7 @@ export async function checkScheduleChange(store, newRows, now = new Date()) {
   const blocked = [];
   for (const date of dates) for (const [time, m] of Object.entries(days[date].regs)) {
     const n = Object.keys(m).length;
-    if (n && !keep.has(`${dow(date)}|${time}`)) blocked.push(`${fmtDate(date)} ${fmtTime(time)} (${n} athlete${n > 1 ? 's' : ''})`);
+    if (n && !keep.has(`${dow(date)}|${time}`) && !extraKeys.has(`${date}|${time}`)) blocked.push(`${fmtDate(date)} ${fmtTime(time)} (${n} athlete${n > 1 ? 's' : ''})`);
   }
   if (blocked.length) throw new UserError("These sessions have athletes registered, so they can't be removed or moved yet. Remove the athletes first: " + blocked.slice(0, 6).join('; ') + (blocked.length > 6 ? ` and ${blocked.length - 6} more` : ''));
 }

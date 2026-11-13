@@ -3,7 +3,7 @@
 // so the same code runs on Netlify Blobs and in local tests.
 //
 // Blobs used:
-//   config          program settings + weekly schedule template + cancelled sessions
+//   config          program settings + weekly schedule template + one-time sessions (`extras`) + cancelled sessions
 //   volunteers      { byEmail: { [email]: volunteer } }
 //   day/YYYY-MM-DD  { signups: { [slotId]: { email, at } } }
 //   sent/YYYY-MM-DD { emails: [...] }  (which reminder emails already went out that day)
@@ -56,6 +56,8 @@ export function defaultConfig() {
     slots: structuredClone(DEFAULT_SLOTS),
     cancelled: {}, // "YYYY-MM-DD|HH:MM" -> { reason, at }
     nextSlotNum: DEFAULT_SLOTS.length + 1,
+    extras: [],    // one-time spots: { id: 'x001', date, time, boat, position, athlete, note }
+    nextExtraNum: 1,
   };
 }
 
@@ -154,10 +156,14 @@ export function inSeason(cfg, date) {
   if (cfg.seasonEnd && date > cfg.seasonEnd) return false;
   return true;
 }
-export function templateForDay(cfg, date) {
+/** Every spot on a date: the weekly schedule for that weekday plus any one-time sessions added for that date. */
+export function slotsForDate(cfg, date) {
   const d = dow(date);
-  return cfg.slots.filter((s) => s.day === d).sort((a, b) => toMin(a.time) - toMin(b.time));
+  const weekly = cfg.slots.filter((s) => s.day === d);
+  const extra = (cfg.extras || []).filter((s) => s.date === date).map((s) => ({ ...s, day: d, extra: true }));
+  return [...weekly, ...extra].sort((a, b) => toMin(a.time) - toMin(b.time));
 }
+export const templateForDay = slotsForDate;
 export const sessionKey = (date, time) => `${date}|${time}`;
 
 /**
@@ -175,7 +181,7 @@ export function buildSchedule(cfg, dates, days, decorate) {
       let sess = sessions.find((x) => x.time === s.time);
       if (!sess) {
         const c = cfg.cancelled[sessionKey(date, s.time)];
-        sess = { time: s.time, label: fmtTime(s.time), cancelled: c ? c.reason || 'Cancelled' : null, slots: [] };
+        sess = { time: s.time, label: fmtTime(s.time), cancelled: c ? c.reason || 'Cancelled' : null, oneTime: !!s.extra, slots: [] };
         sessions.push(sess);
       }
       const su = (days[date] || {})[s.id] || null;
@@ -261,8 +267,8 @@ export async function updateProfile(store, key, { name, phone, alerts }) {
 
 function findTemplateSlot(cfg, date, slotId) {
   if (!isDate(date)) throw new UserError('Invalid date.');
-  const s = cfg.slots.find((x) => x.id === slotId);
-  if (!s || s.day !== dow(date)) throw new UserError('That spot is not on the schedule.');
+  const s = slotsForDate(cfg, date).find((x) => x.id === slotId);
+  if (!s) throw new UserError('That spot is not on the schedule.');
   return s;
 }
 
@@ -275,7 +281,7 @@ export async function claim(store, email, date, slotId, { now = new Date(), bypa
   } else if (!inSeason(cfg, date)) throw new UserError('That date is outside the season.');
   if (isPast(date, s.time, now)) throw new UserError('That session has already started.');
   if (cfg.cancelled[sessionKey(date, s.time)]) throw new UserError('That session has been cancelled.');
-  const sameSession = new Set(cfg.slots.filter((x) => x.day === s.day && x.time === s.time).map((x) => x.id));
+  const sameSession = new Set(slotsForDate(cfg, date).filter((x) => x.time === s.time).map((x) => x.id));
   await mutate(store, 'day/' + date, () => ({ signups: {} }), (day) => {
     const cur = day.signups[slotId];
     if (cur && cur.email === email) throw new UserError("You're already signed up for that spot.");
@@ -320,7 +326,7 @@ export async function adminOverview(store, now = new Date()) {
     .map((v) => ({ name: v.name, email: v.email, phone: v.phone, alerts: v.alerts !== false, key: v.key, created: v.created, upcoming: upcomingCount[v.email] || 0 }))
     .sort((a, b) => a.name.localeCompare(b.name));
   for (const day of schedule) for (const sess of day.sessions) sess.past = isPast(day.date, sess.time, now);
-  const { slots, ...settings } = cfg;
+  const { slots, extras, ...settings } = cfg;
   return { today, settings, slots, schedule, volunteers };
 }
 
@@ -336,7 +342,7 @@ export async function saveSettings(store, input) {
   }
   if (s.weeksAhead !== undefined) { s.weeksAhead = Math.round(+s.weeksAhead); if (!(s.weeksAhead >= 1 && s.weeksAhead <= 12)) throw new UserError('Weeks shown must be 1–12.'); }
   for (const k of ['seasonStart', 'seasonEnd']) if (s[k] !== undefined && s[k] !== '' && !isDate(s[k])) throw new UserError('Season dates must be valid dates.');
-  return mutateConfig(store, (cfg) => { Object.assign(cfg, s); const { slots, ...rest } = cfg; return rest; });
+  return mutateConfig(store, (cfg) => { Object.assign(cfg, s); const { slots, extras, ...rest } = cfg; return rest; });
 }
 
 /** Replace the weekly template. Rows keep their id; new rows get one. Removing a row with future sign-ups is blocked. */
@@ -380,11 +386,52 @@ export async function setCancelled(store, date, time, reason, cancelled) {
   });
 }
 
+/* ---------------- one-time sessions ---------------- */
+
+/** Add a session on one date only (an extra practice, or the new day for a moved one). */
+export async function addOneTimeSession(store, { date, time, slots }, now = new Date()) {
+  if (!isDate(date)) throw new UserError('Pick a date.');
+  if (!isTime(time)) throw new UserError('Pick a start time.');
+  const today = todayET(now);
+  if (date < today || (date === today && toMin(time) <= nowMinutesET(now))) throw new UserError('That date and time has already passed.');
+  if (date > addDays(today, 7 * 12)) throw new UserError('Pick a date within the next 12 weeks.');
+  if (!Array.isArray(slots) || !slots.length) throw new UserError('Add at least one spot.');
+  if (slots.length > 30) throw new UserError('That is too many spots for one session.');
+  const rows = slots.map((r) => {
+    const position = clean(r.position, 40);
+    if (!position) throw new UserError('Every spot needs a position.');
+    return { boat: clean(r.boat, 20), position, athlete: clean(r.athlete, 50), note: clean(r.note, 120) };
+  });
+  return mutateConfig(store, (cfg) => {
+    if (!inSeason(cfg, date)) throw new UserError('That date is outside the season dates set in Settings.');
+    if (slotsForDate(cfg, date).some((s) => s.time === time)) throw new UserError(`There's already a session at ${fmtTime(time)} on ${fmtDate(date)}. Pick a different time.`);
+    cfg.extras ||= []; cfg.nextExtraNum ||= 1;
+    cfg.extras = cfg.extras.filter((x) => x.date >= addDays(today, -30)); // tidy old ones
+    for (const r of rows) cfg.extras.push({ id: 'x' + String(cfg.nextExtraNum++).padStart(3, '0'), date, time, ...r });
+    return { date, time, label: `${fmtDate(date)}, ${fmtTime(time)}` };
+  });
+}
+
+/** Delete a one-time session. Only allowed while nobody is signed up (otherwise cancel it so people are told). */
+export async function deleteOneTimeSession(store, date, time, hasAthletes = false) {
+  if (!isDate(date) || !isTime(time)) throw new UserError('Invalid session.');
+  const cfg = await loadConfig(store);
+  const ids = new Set((cfg.extras || []).filter((x) => x.date === date && x.time === time).map((x) => x.id));
+  if (!ids.size) throw new UserError('That one-time session was not found.');
+  const days = await loadDays(store, [date]);
+  if (hasAthletes || Object.keys(days[date]).some((id) => ids.has(id))) throw new UserError('People are signed up for this session. Use "Cancel session" so they get an email, instead of deleting it.');
+  return mutateConfig(store, (c) => {
+    c.extras = (c.extras || []).filter((x) => !(x.date === date && x.time === time));
+    delete c.cancelled[sessionKey(date, time)];
+  });
+}
+
 /** Volunteers signed up for one session (for notices). */
 export async function sessionVolunteers(store, date, time) {
   const [cfg, vols, days] = await Promise.all([loadConfig(store), loadVolunteers(store), loadDays(store, [date])]);
   const ids = new Set(templateForDay(cfg, date).filter((s) => s.time === time).map((s) => s.id));
-  return Object.entries(days[date]).filter(([id]) => ids.has(id)).map(([id, su]) => ({ slot: cfg.slots.find((s) => s.id === id), volunteer: vols.byEmail[su.email] })).filter((x) => x.volunteer);
+  const byId = Object.fromEntries(templateForDay(cfg, date).map((s) => [s.id, s]));
+  return Object.entries(days[date]).filter(([id]) => ids.has(id)).map(([id, su]) => ({ slot: byId[id], volunteer: vols.byEmail[su.email] })).filter((x) => x.volunteer);
 }
 
 export async function adminAddVolunteer(store, input) {

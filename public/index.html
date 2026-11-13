@@ -86,6 +86,7 @@ h1 { font-family: "Big Shoulders Display", sans-serif; font-weight: 800; font-si
 .pill.full { background: var(--mine-bg); color: var(--mine-ink); }
 .pill.muted { background: transparent; color: var(--muted); border: 1px solid var(--line); }
 .cancel-banner { padding: 12px 16px; color: var(--open-ink); font-weight: 600; }
+.extra-tag { display: inline-block; font-size: 12px; font-weight: 600; background: #fff3d6; color: #6b4b00; border-radius: 6px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
 .ath-line { padding: 8px 16px; font-size: 14px; color: var(--muted); border-bottom: 1px solid var(--line); }
 .ath-line b { color: var(--ink); font-weight: 600; }
 .slot { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
@@ -311,7 +312,7 @@ label.f span { font-weight: 400; color: var(--muted); }
         const open = sess.slots.filter((s) => s.status === 'open').length;
         const pill = sess.cancelled ? `<span class="pill muted">Cancelled</span>` : sess.past ? `<span class="pill muted">Started</span>` : open ? `<span class="pill">${open} of ${sess.slots.length} open</span>` : `<span class="pill full">Full</span>`;
         dayHtml += `<div class="panel session${sess.cancelled ? ' cancelled' : ''}">
-          <div class="sess-h"><span class="sess-time">${esc(sess.label)}</span>${pill}</div>
+          <div class="sess-h"><span class="sess-time">${esc(sess.label)}${sess.oneTime ? ' <span class="extra-tag">Extra session</span>' : ''}</span>${pill}</div>
           ${sess.cancelled ? `<div class="cancel-banner">This session is cancelled: ${esc(sess.cancelled)}</div>` : ''}
           ${!sess.cancelled && sess.athletes && sess.athletes.length ? `<div class="ath-line">Athletes signed up: <b>${sess.athletes.map((a) => esc(a.name)).join(', ')}</b></div>` : ''}
           ${slots.map((s) => slotHtml(d, sess, s)).join('')}</div>`;

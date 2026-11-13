@@ -6,6 +6,15 @@ A web app volunteers open on their phone to see which Adaptive sessions still ne
 - **Athlete page:** `https://YOUR-SITE.netlify.app/athletes`
 - **Coordinator page:** `https://YOUR-SITE.netlify.app/admin`
 
+## One-time sessions (extra or moved practices)
+
+The weekly schedule repeats every week. For a week that's different, use the **Upcoming** tab:
+
+- **+ One-time session:** pick a date and time, then copy the spots from a regular session or add your own. It shows on the volunteer and athlete pages (tagged *Extra session*), with the same sign-ups, reminders and iCrew to-do. The weekly schedule doesn't change.
+- **Move…** on any session: pick the new date and time. The spots are copied over, and by default the original is cancelled and the people on it get an email saying where it moved. They aren't moved automatically; they sign up again.
+- **Fewer practices:** use **Cancel session…** as before.
+- **Delete** removes a one-time session, but only while nobody is signed up. Otherwise cancel it so people are told.
+
 ## Athletes (added November 2026)
 
 **Athlete sign-ups are information only.** They never open, close or change volunteer spots. Volunteers keep signing up from the weekly schedule exactly as before. Linking the two may come later, once we've seen how this works.

@@ -195,6 +195,17 @@ export function makeHandler({ store, mailer, now = () => new Date() }) {
       return { ok: true, notified, athletesNotified, emailWarning: warn };
     },
 
+    'POST admin/one-time': async (req, url, body) => {
+      isAdmin(req);
+      return core.addOneTimeSession(store, body, now());
+    },
+    'POST admin/one-time-delete': async (req, url, body) => {
+      isAdmin(req);
+      const athletes = core.isDate(body.date) && core.isTime(body.time) ? await ath.sessionAthletes(store, body.date, body.time) : [];
+      await core.deleteOneTimeSession(store, body.date, body.time, athletes.length > 0);
+      return { ok: true };
+    },
+
     'POST admin/athlete': async (req, url, body) => {
       isAdmin(req);
       const a = await ath.adminAddAthlete(store, body);
