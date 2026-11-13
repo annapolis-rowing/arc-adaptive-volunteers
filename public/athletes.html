@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F3B57">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ARC Rowing">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<title>Adaptive Rowing Sign-Up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --navy: #1F3B57; --teal: #2E6E73; --teal-ink: #1f5256;
+  --bg: #f3f5f7; --card: #ffffff; --ink: #1d2833; --muted: #55626e; --line: #cfd8df;
+  --yes-bg: #e3f1e3; --yes-ink: #245a24; --warn-ink: #8f2424; --band: #e8eef3; --tag: #fff3d6; --tag-ink: #6b4b00;
+  --focus: #f0b429;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0f1a24; --card: #17242f; --ink: #eef2f5; --muted: #a9b6c1; --line: #33475a; --yes-bg: #1f3424; --yes-ink: #a9e0ad; --warn-ink: #f4b0b0; --band: #1c2b37; --teal-ink: #8fd0d5; --tag: #3a3220; --tag-ink: #f3d99a; }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 18px/1.5 "IBM Plex Sans", system-ui, sans-serif; padding-bottom: env(safe-area-inset-bottom, 0); }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+a { color: var(--teal-ink); }
+.wrap { max-width: 680px; margin: 0 auto; padding: 0 16px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.top { background: var(--navy); color: #fff; padding: calc(env(safe-area-inset-top, 0) + 18px) 0 26px; }
+.top .wrap { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.kicker { font-size: 14px; letter-spacing: .1em; text-transform: uppercase; opacity: .85; font-weight: 600; }
+h1 { font-family: "Big Shoulders Display", sans-serif; font-weight: 800; font-size: 44px; line-height: 1; margin: 4px 0 0; }
+.chip-btn { background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.4); color: #fff; border-radius: 999px; padding: 8px 16px; font-size: 16px; font-weight: 600; min-height: 44px; }
+
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+.lead { margin-top: -12px; padding: 18px; }
+.lead p { margin: 0 0 12px; }
+.lead p:last-child { margin-bottom: 0; }
+h2 { font-family: "Big Shoulders Display", sans-serif; font-weight: 800; font-size: 28px; margin: 0 0 8px; color: var(--navy); }
+@media (prefers-color-scheme: dark) { h2, .week-h, dialog h3 { color: #d6e5f1 !important; } }
+
+.mine-item { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.mine-item:first-of-type { border-top: 0; padding-top: 4px; }
+.when { font-weight: 700; font-size: 19px; }
+.rel { display: inline-block; font-size: 14px; font-weight: 700; color: var(--teal-ink); text-transform: uppercase; letter-spacing: .06em; margin-right: 6px; }
+.note { color: var(--muted); font-size: 16px; }
+
+.week-h { font-family: "Big Shoulders Display", sans-serif; font-weight: 800; font-size: 30px; margin: 30px 0 4px; color: var(--navy); }
+.day { margin: 14px 0 0; overflow: hidden; }
+.day-h { padding: 12px 18px; background: var(--band); font-weight: 700; font-size: 19px; border-bottom: 1px solid var(--line); }
+.sess { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.sess:first-of-type { border-top: 0; }
+.sess .time { font-size: 22px; font-weight: 700; min-width: 108px; }
+.sess .mid { flex: 1; min-width: 120px; }
+.tag { display: inline-block; background: var(--tag); color: var(--tag-ink); font-size: 14px; font-weight: 600; border-radius: 8px; padding: 2px 10px; }
+.status-yes { display: inline-flex; align-items: center; gap: 6px; background: var(--yes-bg); color: var(--yes-ink); font-weight: 700; border-radius: 999px; padding: 6px 14px; font-size: 17px; }
+.cancelled { color: var(--warn-ink); font-weight: 700; }
+.sess.past { opacity: .55; }
+.act { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+.btn { border: 0; border-radius: 12px; padding: 12px 22px; font-weight: 700; font-size: 18px; background: var(--teal); color: #fff; min-height: 52px; }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .55; cursor: default; }
+.btn.ghost { background: var(--card); color: var(--teal-ink); border: 2px solid var(--line); }
+.btn.quiet { background: transparent; color: var(--warn-ink); border: 2px solid var(--line); font-size: 16px; min-height: 46px; padding: 8px 16px; }
+.btn.big { width: 100%; }
+.nothing { text-align: center; color: var(--muted); padding: 40px 16px; }
+
+footer { color: var(--muted); font-size: 16px; padding: 34px 0 44px; text-align: center; }
+.textbtn { background: none; border: 0; padding: 4px 2px; color: var(--teal-ink); text-decoration: underline; font-size: inherit; min-height: 44px; }
+
+dialog { border: 0; border-radius: 16px; padding: 0; width: min(480px, calc(100vw - 20px)); max-height: calc(100vh - 20px); background: var(--card); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+dialog::backdrop { background: rgba(10,20,30,.55); }
+.dlg { padding: 22px; }
+dialog h3 { font-family: "Big Shoulders Display", sans-serif; font-size: 30px; margin: 0 0 8px; color: var(--navy); }
+.summary { background: var(--band); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: 19px; font-weight: 700; }
+label.f { display: block; font-size: 17px; font-weight: 700; margin: 14px 0 6px; }
+label.f span { font-weight: 400; color: var(--muted); }
+.in { width: 100%; padding: 13px 14px; border: 2px solid var(--line); border-radius: 10px; background: var(--bg); font-size: 18px; }
+textarea.in { min-height: 90px; resize: vertical; }
+.in:focus { border-color: var(--teal); }
+.check { display: flex; gap: 12px; align-items: flex-start; margin: 16px 0 4px; font-size: 17px; }
+.check input { width: 24px; height: 24px; margin-top: 2px; accent-color: var(--teal); flex: 0 0 auto; }
+.row-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; flex-wrap: wrap; }
+.row-btns .btn { flex: 1 1 140px; }
+.err { color: var(--warn-ink); font-size: 16px; margin-top: 10px; min-height: 1em; font-weight: 600; }
+.help { color: var(--muted); font-size: 16px; }
+
+.toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0) + 20px); transform: translateX(-50%) translateY(30px); opacity: 0; transition: .25s; background: var(--navy); color: #fff; padding: 14px 20px; border-radius: 12px; max-width: calc(100vw - 32px); box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 50; font-size: 17px; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateX(-50%); }
+.toast.bad { background: #8a2626; }
+.offline { background: #fbe9e9; color: #8f2424; text-align: center; padding: 10px; font-size: 16px; display: none; }
+.skeleton { height: 140px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); margin: 22px 0; opacity: .6; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<div class="offline" id="offline" role="alert">Can't reach the server right now. The page will try again on its own.</div>
+<header class="top">
+  <div class="wrap">
+    <div>
+      <div class="kicker" id="progName">Adaptive Rowing</div>
+      <h1>Rowing Sign-Up</h1>
+    </div>
+    <div id="who"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section id="mineBox" aria-live="polite"></section>
+  <main id="days"><div class="skeleton"></div><div class="skeleton"></div></main>
+  <footer id="foot"></footer>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlgTitle"><div class="dlg" id="dlgBody"></div></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} },
+  };
+  const KEY = 'arcAthleteKey';
+
+  // A personal link (?k=...) signs this device in, then is removed from the address bar.
+  const params = new URLSearchParams(location.search);
+  if (params.get('k')) {
+    store.set(KEY, params.get('k'));
+    params.delete('k');
+    history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params : '') + location.hash);
+  }
+  let key = store.get(KEY);
+  let data = null;
+
+  function toast(msg, bad) {
+    const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (bad ? ' bad' : '');
+    clearTimeout(toast.t); toast.t = setTimeout(() => (t.className = 'toast'), bad ? 6000 : 4000);
+  }
+  async function api(method, path, body) {
+    const r = await fetch('/api/' + path, { method, headers: body ? { 'content-type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+    let d = {}; try { d = await r.json(); } catch {}
+    if (!r.ok) { const e = new Error(d.error || 'Something went wrong. Please try again.'); e.status = r.status; throw e; }
+    return d;
+  }
+  async function refresh() {
+    try {
+      const d = await api('GET', 'athlete/schedule' + (key ? '?k=' + encodeURIComponent(key) : ''));
+      $('offline').style.display = 'none';
+      if (key && !d.me) { key = null; store.set(KEY, null); }
+      data = d; render();
+    } catch { $('offline').style.display = 'block'; if (!data) $('days').innerHTML = '<p class="nothing">Couldn\'t load the sessions. Check your connection.</p>'; }
+  }
+
+  /* ---------- dates ---------- */
+  const addDays = (date, n) => { const d = new Date(date + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const weekStart = (date) => { const d = new Date(date + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - d.getUTCDay()); return d.toISOString().slice(0, 10); };
+  const fmt = (date, o) => new Date(date + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', ...o });
+  const longDate = (date) => fmt(date, { weekday: 'long', month: 'long', day: 'numeric' });
+  const relDay = (date) => date === data.today ? 'Today' : date === addDays(data.today, 1) ? 'Tomorrow' : '';
+  const weekLabel = (ws) => { const tw = weekStart(data.today); return ws === tw ? 'This week' : ws === addDays(tw, 7) ? 'Next week' : 'Week of ' + fmt(ws, { month: 'long', day: 'numeric' }); };
+  const first = (n) => String(n || '').split(' ')[0];
+
+  /* ---------- render ---------- */
+  function render() {
+    document.title = `${data.program.name} · Rowing Sign-Up`;
+    $('progName').textContent = data.program.name;
+    $('who').innerHTML = data.me
+      ? `<button class="chip-btn" id="meBtn" aria-label="Your details and settings">👤 ${esc(first(data.me.name))}</button>`
+      : `<button class="chip-btn" id="signInBtn">Sign in</button>`;
+    if (data.me) $('meBtn').onclick = openSettings; else $('signInBtn').onclick = () => openRegister(null);
+    renderMine(); renderDays(); renderFooter();
+  }
+
+  function renderMine() {
+    const box = $('mineBox');
+    if (!data.me) {
+      box.innerHTML = `<div class="panel lead"><p><b>Welcome!</b> Pick a session below and tap <b>Sign me up</b>. The first time, we'll ask for a name and an email so we can send reminders.</p>
+        <p>Parents, caregivers and aides can sign up for an athlete too.</p>
+        <p class="help">Signed up before on another phone or computer? <button class="textbtn" id="lost">Email me my link</button></p></div>`;
+      $('lost').onclick = openLostLink;
+      return;
+    }
+    const up = data.mine.filter((m) => !m.past);
+    const who = data.me.contactName ? `${esc(first(data.me.name))}'s sessions` : 'Your sessions';
+    box.innerHTML = `<div class="panel lead"><h2>${who}</h2>${up.length ? up.map((m) => `
+      <div class="mine-item"><div>
+        <div class="when">${relDay(m.date) ? `<span class="rel">${relDay(m.date)}</span>` : ''}${esc(fmt(m.date, { weekday: 'long', month: 'short', day: 'numeric' }))} · ${esc(m.label)}</div>
+        ${m.cancelled ? `<div class="cancelled">Cancelled: ${esc(m.cancelled)}</div>` : m.note ? `<div class="note">Note: “${esc(m.note)}”</div>` : ''}
+      </div>
+      ${m.cancelled ? '' : `<div class="act"><button class="btn ghost" style="min-height:46px;font-size:16px;padding:8px 14px" data-note="${m.date}|${m.time}">Note</button><button class="btn quiet" data-leave="${m.date}|${m.time}">Can't make it</button></div>`}</div>`).join('')
+      : `<p class="note" style="margin:0">Not signed up for any sessions yet. Pick one below.</p>`}</div>`;
+    wire(box);
+  }
+
+  function renderDays() {
+    if (!data.schedule.length) {
+      const s = data.program.seasonStart;
+      $('days').innerHTML = `<p class="nothing">${s && s > data.today ? `Sign-ups open for the season starting ${esc(fmt(s, { month: 'long', day: 'numeric' }))}.` : 'There are no sessions on the schedule right now.'}</p>`;
+      return;
+    }
+    let html = '', curWeek = null;
+    for (const d of data.schedule) {
+      const sessions = d.sessions.filter((s) => !(s.past && !s.registered));
+      if (!sessions.length) continue;
+      const ws = weekStart(d.date);
+      if (ws !== curWeek) { curWeek = ws; html += `<h2 class="week-h">${esc(weekLabel(ws))}</h2>`; }
+      html += `<section class="panel day" aria-label="${esc(longDate(d.date))}"><div class="day-h">${relDay(d.date) ? `<span class="rel">${relDay(d.date)}</span>` : ''}${esc(longDate(d.date))}</div>
+        ${sessions.map((s) => sessHtml(d, s)).join('')}</section>`;
+    }
+    $('days').innerHTML = html || '<p class="nothing">No more sessions in the sign-up window.</p>';
+    wire($('days'));
+  }
+
+  function sessHtml(d, s) {
+    let mid = '', act = '';
+    if (s.cancelled) mid = `<span class="cancelled">Cancelled: ${esc(s.cancelled)}</span>`;
+    else if (s.registered) {
+      mid = `<span class="status-yes">✓ ${data.me?.contactName ? 'Signed up' : "You're signed up"}</span>`;
+      if (!s.past) act = `<button class="btn quiet" data-leave="${d.date}|${s.time}">Can't make it</button>`;
+    } else {
+      if (s.usual) mid = `<span class="tag">Your usual time</span>`;
+      act = `<button class="btn" data-join="${d.date}|${s.time}">Sign me up</button>`;
+    }
+    return `<div class="sess${s.past ? ' past' : ''}"><div class="time">${esc(s.label)}</div><div class="mid">${mid}</div><div class="act">${act}</div></div>`;
+  }
+
+  function renderFooter() {
+    const p = data.program;
+    $('foot').innerHTML = `${p.coordinatorName || p.coordinatorEmail ? `Questions? Contact ${esc(p.coordinatorName || 'the coordinator')}${p.coordinatorEmail ? ` at <a href="mailto:${esc(p.coordinatorEmail)}">${esc(p.coordinatorEmail)}</a>` : ''}.<br>` : ''}
+      ${data.me ? '' : '<button class="textbtn" id="lost2">Email me my link</button>'}`;
+    if (!data.me) $('lost2').onclick = openLostLink;
+  }
+
+  function wire(root) {
+    root.querySelectorAll('[data-join]').forEach((b) => (b.onclick = () => startJoin(...b.dataset.join.split('|'))));
+    root.querySelectorAll('[data-leave]').forEach((b) => (b.onclick = () => confirmLeave(...b.dataset.leave.split('|'))));
+    root.querySelectorAll('[data-note]').forEach((b) => (b.onclick = () => editNote(...b.dataset.note.split('|'))));
+  }
+  const find = (date, time) => { const d = data.schedule.find((x) => x.date === date); return d && d.sessions.find((s) => s.time === time); };
+  const summary = (date, time) => `${esc(longDate(date))}<br>${esc(find(date, time)?.label || time)}`;
+
+  /* ---------- dialogs ---------- */
+  let lastFocus = null;
+  function dialog(html, wireFn) {
+    $('dlgBody').innerHTML = html;
+    const dlg = $('dlg');
+    if (!dlg.open) { lastFocus = document.activeElement; dlg.showModal(); }
+    $('dlgBody').querySelectorAll('[data-close]').forEach((b) => (b.onclick = () => dlg.close()));
+    wireFn && wireFn();
+  }
+  $('dlg').addEventListener('close', () => { if (lastFocus && document.contains(lastFocus)) lastFocus.focus(); });
+  $('dlg').addEventListener('click', (e) => { if (e.target === $('dlg')) $('dlg').close(); });
+
+  function startJoin(date, time) {
+    if (!data.me) return openRegister({ date, time });
+    dialog(`<h3 id="dlgTitle">Sign up${data.me.contactName ? ' ' + esc(first(data.me.name)) : ''} for this session?</h3>
+      <div class="summary">${summary(date, time)}</div>
+      <label class="f" for="jNote">Anything the coach should know? <span>(optional)</span></label>
+      <textarea class="in" id="jNote" maxlength="300" placeholder="e.g. Bringing my own seat, arriving 10 minutes late"></textarea>
+      <div class="err" id="err" role="alert"></div>
+      <div class="row-btns"><button class="btn ghost" data-close>Not now</button><button class="btn" id="go">Yes, sign me up</button></div>`, () => {
+      $('go').focus();
+      $('go').onclick = async () => {
+        $('go').disabled = true;
+        try { const r = await api('POST', 'athlete/join', { k: key, date, time, note: $('jNote').value }); $('dlg').close(); toast(r.emailWarning ? "You're signed up! (" + r.emailWarning + ')' : "You're signed up! We emailed a confirmation."); refresh(); }
+        catch (e) { $('err').textContent = e.message; $('go').disabled = false; if (e.status === 401) { key = null; store.set(KEY, null); refresh(); } }
+      };
+    });
+  }
+
+  function confirmLeave(date, time) {
+    dialog(`<h3 id="dlgTitle">Can't make it?</h3>
+      <div class="summary">${summary(date, time)}</div>
+      <p>We'll take ${data.me.contactName ? esc(first(data.me.name)) : 'you'} off this session and let the coordinator know.</p>
+      <div class="err" id="err" role="alert"></div>
+      <div class="row-btns"><button class="btn ghost" data-close>Keep me signed up</button><button class="btn" style="background:#8f2424" id="go">Yes, take me off</button></div>`, () => {
+      $('go').onclick = async () => {
+        $('go').disabled = true;
+        try { await api('POST', 'athlete/leave', { k: key, date, time }); $('dlg').close(); toast('Done. Thanks for letting us know.'); refresh(); }
+        catch (e) { $('err').textContent = e.message; $('go').disabled = false; }
+      };
+    });
+  }
+
+  function editNote(date, time) {
+    const m = data.mine.find((x) => x.date === date && x.time === time);
+    dialog(`<h3 id="dlgTitle">Note for the coach</h3><div class="summary">${summary(date, time)}</div>
+      <label class="f" for="nNote">Note <span>(optional)</span></label><textarea class="in" id="nNote" maxlength="300">${esc(m?.note || '')}</textarea>
+      <div class="err" id="err" role="alert"></div>
+      <div class="row-btns"><button class="btn ghost" data-close>Cancel</button><button class="btn" id="go">Save note</button></div>`, () => {
+      $('nNote').focus();
+      $('go').onclick = async () => {
+        $('go').disabled = true;
+        try { await api('POST', 'athlete/note', { k: key, date, time, note: $('nNote').value }); $('dlg').close(); toast('Note saved.'); refresh(); }
+        catch (e) { $('err').textContent = e.message; $('go').disabled = false; }
+      };
+    });
+  }
+
+  function openRegister(pending) {
+    dialog(`<h3 id="dlgTitle">${pending ? 'Almost there' : 'Get started'}</h3>
+      ${pending ? `<div class="summary">${summary(pending.date, pending.time)}</div>` : ''}
+      <form id="rf" novalidate>
+        <label class="check"><input type="checkbox" id="rOther"> <span>I'm signing up <b>for someone else</b> (parent, caregiver, aide)</span></label>
+        <div id="otherBox" hidden><label class="f" for="rContact">Your name</label><input class="in" id="rContact" autocomplete="name"></div>
+        <label class="f" for="rName" id="rNameLbl">Your name</label><input class="in" id="rName" autocomplete="name" required>
+        <label class="f" for="rEmail">Email <span>(for reminders)</span></label><input class="in" id="rEmail" type="email" autocomplete="email" inputmode="email" required>
+        <label class="f" for="rPhone">Mobile phone <span>(optional)</span></label><input class="in" id="rPhone" type="tel" autocomplete="tel">
+        ${pending ? `<label class="f" for="rNote">Anything the coach should know? <span>(optional)</span></label><textarea class="in" id="rNote" maxlength="300"></textarea>` : ''}
+        <div class="err" id="err" role="alert"></div>
+        <div class="row-btns"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn" id="go">${pending ? 'Sign me up' : 'Continue'}</button></div>
+      </form>
+      <p class="help">Signed up before? <button class="textbtn" id="lost">Email me my link instead</button></p>`, () => {
+      $('rOther').onchange = () => {
+        const on = $('rOther').checked;
+        $('otherBox').hidden = !on;
+        $('rNameLbl').textContent = on ? "Athlete's name" : 'Your name';
+        $('rName').setAttribute('autocomplete', on ? 'off' : 'name');
+        (on ? $('rContact') : $('rName')).focus();
+      };
+      $('rName').focus();
+      $('lost').onclick = openLostLink;
+      $('rf').onsubmit = async (e) => {
+        e.preventDefault(); $('go').disabled = true; $('err').textContent = '';
+        const other = $('rOther').checked;
+        if (other && $('rContact').value.trim().length < 2) { $('err').textContent = 'Please enter your name.'; $('go').disabled = false; return; }
+        try {
+          const r = await api('POST', 'athlete/register', { name: $('rName').value, email: $('rEmail').value, phone: $('rPhone').value, contactName: other ? $('rContact').value : '' });
+          if (r.existing) { dialog(`<h3 id="dlgTitle">Check your email</h3><p>${esc(r.message)}</p><div class="row-btns"><button class="btn" data-close>OK</button></div>`); return; }
+          key = r.key; store.set(KEY, key);
+          if (pending) {
+            try { await api('POST', 'athlete/join', { k: key, ...pending, note: $('rNote').value }); $('dlg').close(); toast("You're signed up! We emailed a confirmation and your personal link."); }
+            catch (err) { $('dlg').close(); toast(err.message, true); }
+          } else { $('dlg').close(); toast('Welcome! Now pick a session.'); }
+          refresh();
+        } catch (err) { $('err').textContent = err.message; $('go').disabled = false; }
+      };
+    });
+  }
+
+  function openLostLink() {
+    dialog(`<h3 id="dlgTitle">Email me my link</h3><p>Enter the email you signed up with. We'll send a link that signs you in on this device.</p>
+      <form id="lf" novalidate><label class="f" for="lEmail">Email</label><input class="in" id="lEmail" type="email" autocomplete="email" inputmode="email">
+      <div class="err" id="err" role="alert"></div>
+      <div class="row-btns"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn" id="go">Send link</button></div></form>`, () => {
+      $('lEmail').focus();
+      $('lf').onsubmit = async (e) => {
+        e.preventDefault(); $('go').disabled = true;
+        try { const r = await api('POST', 'athlete/link', { email: $('lEmail').value }); dialog(`<h3 id="dlgTitle">Check your email</h3><p>${esc(r.message)}</p><div class="row-btns"><button class="btn" data-close>OK</button></div>`); }
+        catch (err) { $('err').textContent = err.message; $('go').disabled = false; }
+      };
+    });
+  }
+
+  function openSettings() {
+    const m = data.me;
+    dialog(`<h3 id="dlgTitle">Details</h3>
+      <form id="sf" novalidate>
+        <label class="f" for="sName">Athlete's name</label><input class="in" id="sName" value="${esc(m.name)}">
+        <label class="f" for="sContact">Parent / caregiver name <span>(if someone else signs up)</span></label><input class="in" id="sContact" value="${esc(m.contactName || '')}">
+        <label class="f">Email</label><div>${esc(m.email)}</div>
+        <label class="f" for="sPhone">Mobile phone <span>(optional)</span></label><input class="in" id="sPhone" type="tel" value="${esc(m.phone || '')}">
+        <p class="help">Reminders go out 3 days before and the day before each session.</p>
+        <div class="err" id="err" role="alert"></div>
+        <div class="row-btns"><button type="button" class="btn ghost" id="out">Sign out here</button><button class="btn" id="go">Save</button></div>
+      </form>`, () => {
+      $('out').onclick = () => { key = null; store.set(KEY, null); $('dlg').close(); toast('Signed out on this device.'); refresh(); };
+      $('sf').onsubmit = async (e) => {
+        e.preventDefault(); $('go').disabled = true;
+        try { await api('POST', 'athlete/profile', { k: key, name: $('sName').value, contactName: $('sContact').value, phone: $('sPhone').value }); $('dlg').close(); toast('Saved.'); refresh(); }
+        catch (err) { $('err').textContent = err.message; $('go').disabled = false; }
+      };
+    });
+  }
+
+  refresh();
+  setInterval(() => { if (!document.hidden && !$('dlg').open) refresh(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !$('dlg').open) refresh(); });
+})();
+</script>
+</body>
+</html>

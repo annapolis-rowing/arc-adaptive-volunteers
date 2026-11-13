@@ -86,6 +86,8 @@ h1 { font-family: "Big Shoulders Display", sans-serif; font-weight: 800; font-si
 .pill.full { background: var(--mine-bg); color: var(--mine-ink); }
 .pill.muted { background: transparent; color: var(--muted); border: 1px solid var(--line); }
 .cancel-banner { padding: 12px 16px; color: var(--open-ink); font-weight: 600; }
+.ath-line { padding: 8px 16px; font-size: 14px; color: var(--muted); border-bottom: 1px solid var(--line); }
+.ath-line b { color: var(--ink); font-weight: 600; }
 .slot { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
 .slot:first-of-type { border-top: 0; }
 .slot .ico { flex: 0 0 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--band); color: var(--teal-ink); }
@@ -311,6 +313,7 @@ label.f span { font-weight: 400; color: var(--muted); }
         dayHtml += `<div class="panel session${sess.cancelled ? ' cancelled' : ''}">
           <div class="sess-h"><span class="sess-time">${esc(sess.label)}</span>${pill}</div>
           ${sess.cancelled ? `<div class="cancel-banner">This session is cancelled: ${esc(sess.cancelled)}</div>` : ''}
+          ${!sess.cancelled && sess.athletes && sess.athletes.length ? `<div class="ath-line">Athletes signed up: <b>${sess.athletes.map((a) => esc(a.name)).join(', ')}</b></div>` : ''}
           ${slots.map((s) => slotHtml(d, sess, s)).join('')}</div>`;
       }
       if (dayHtml) html += `<section class="day"><h2 class="date-h">${esc(short(d.date, { weekday: 'long', month: 'short', day: 'numeric' }))}${relDay(d.date) ? `<small>${relDay(d.date)}</small>` : ''}</h2>${dayHtml}</section>`;

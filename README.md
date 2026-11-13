@@ -1,9 +1,31 @@
-# ARC Adaptive Rowing – Volunteer Sign-Up
+# ARC Adaptive Rowing – Volunteer & Athlete Sign-Up
 
-A web app volunteers open on their phone to see which Adaptive sessions still need help, claim a spot, and cancel if plans change. It emails reminders automatically. It runs on one free Netlify site, set up the same way as the Winter Challenge app.
+A web app volunteers open on their phone to see which Adaptive sessions still need help, claim a spot, and cancel if plans change. Athletes use their own simpler page to sign up for sessions. It emails reminders automatically. It runs on one free Netlify site, set up the same way as the Winter Challenge app.
 
 - **Volunteer page:** `https://YOUR-SITE.netlify.app`
+- **Athlete page:** `https://YOUR-SITE.netlify.app/athletes`
 - **Coordinator page:** `https://YOUR-SITE.netlify.app/admin`
+
+## Athletes (added November 2026)
+
+**Athlete sign-ups are information only.** They never open, close or change volunteer spots. Volunteers keep signing up from the weekly schedule exactly as before. Linking the two may come later, once we've seen how this works.
+
+**Athletes**
+- Large text and big buttons. One tap on **Sign me up**, with an optional note for the coach.
+- The first time: name and email, nothing else, no password. A parent, caregiver or aide can tick *I'm signing up for someone else*. One email can be used for more than one athlete.
+- They see the rowing sessions from the weekly schedule. Launch-only sessions (no rowing spots) aren't shown. If their name is on the weekly schedule for a session, it's tagged *Your usual time*.
+- **Can't make it** takes them off. If that's 3 days out or less, the coordinator gets an email.
+- Reminder emails 3 days before and the day before, in the same morning run as volunteers.
+
+**Volunteers** see a line on each session: *Athletes signed up: Jessica W., Doug W.* Nothing else changes for them.
+
+**Coordinator**
+- **Upcoming:** each session lists the athletes signed up, their notes, and whether each one is in iCrew. Add an athlete who calls or texts, or remove one.
+- **iCrew to-do:** the app can't connect to iCrew, so this is the checklist for keeping iCrew up to date. *Add to iCrew* lists sign-ups you haven't entered yet. *Remove from iCrew* lists cancellations of sign-ups you had already entered. Tick them off as you go. The daily status email shows the count.
+- **Athletes:** list, add, edit, delete, copy or email someone's personal link.
+- **Cancel session** now emails the athletes on it too.
+- You can't remove or move a session in the weekly schedule while athletes are signed up for it. Take them off first.
+- Download athlete sign-ups as a CSV from the iCrew to-do tab.
 
 ## What it does
 

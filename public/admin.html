@@ -77,6 +77,19 @@ dialog h3 { margin: 0 0 10px; }
 .row-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 .check { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
 @media (max-width: 640px) { .hide-sm { display: none; } }
+.badge { display: inline-block; min-width: 20px; padding: 0 6px; border-radius: 999px; background: #e0a526; color: #1d1d1d; font-size: 12px; line-height: 20px; text-align: center; margin-left: 4px; }
+.ath-box { padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.ath-box .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; margin-right: 6px; }
+.ath-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 4px 3px 10px; margin: 3px 4px 3px 0; font-size: 14px; background: var(--card); }
+.ath-chip .ic { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 1px 7px; border: 0; }
+.ath-chip .ic.no { background: #fff1d1; color: #7a5200; }
+.ath-chip .ic.yes { background: var(--ok-bg); color: var(--ok-ink); }
+.ath-chip .x { background: none; border: 0; color: var(--muted); padding: 0 6px; font-size: 15px; }
+.ath-note { font-size: 13px; color: var(--muted); margin: 2px 0 0 2px; }
+.drop-line { font-size: 13px; color: var(--open-ink); margin-top: 4px; }
+.todo-row td:first-child { width: 36px; }
+.todo-row input { width: 18px; height: 18px; accent-color: var(--teal); }
+.dim { opacity: .6; }
 </style>
 </head>
 <body>
@@ -84,10 +97,12 @@ dialog h3 { margin: 0 0 10px; }
   <div class="wrap">
     <div class="row">
       <div><div class="kicker" id="prog">Adaptive Rowing</div><h1>Coordinator</h1></div>
-      <div style="display:flex;gap:8px;padding-bottom:4px"><a class="btn ghost sm" href="/" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center">Volunteer page ↗</a><button class="btn ghost sm" id="logout" hidden>Lock</button></div>
+      <div style="display:flex;gap:8px;padding-bottom:4px;flex-wrap:wrap"><a class="btn ghost sm" href="/" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center">Volunteer page ↗</a><a class="btn ghost sm" href="/athletes" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center">Athlete page ↗</a><button class="btn ghost sm" id="logout" hidden>Lock</button></div>
     </div>
     <nav class="tabs" id="tabs" role="tablist" hidden>
       <button class="tab" data-tab="up" aria-selected="true">Upcoming</button>
+      <button class="tab" data-tab="icrew" aria-selected="false">iCrew to-do <span class="badge" id="icrewBadge" hidden></span></button>
+      <button class="tab" data-tab="ath" aria-selected="false">Athletes</button>
       <button class="tab" data-tab="vol" aria-selected="false">Volunteers</button>
       <button class="tab" data-tab="sched" aria-selected="false">Weekly schedule</button>
       <button class="tab" data-tab="set" aria-selected="false">Settings &amp; email</button>
@@ -132,6 +147,8 @@ dialog h3 { margin: 0 0 10px; }
     try { data = await api('GET', 'admin/overview'); } catch (e) { if (pass) $('main').innerHTML = `<p class="err">${esc(e.message)}</p>`; return; }
     $('tabs').hidden = false; $('logout').hidden = false;
     $('prog').textContent = data.settings.programName;
+    const n = data.icrew.add.length + data.icrew.remove.length;
+    $('icrewBadge').hidden = !n; $('icrewBadge').textContent = n;
     render();
   }
   $('logout').onclick = () => { pass = null; ss.set('arcAdminPass', null); gate(); };
@@ -139,18 +156,22 @@ dialog h3 { margin: 0 0 10px; }
 
   function render() {
     $('tabs').querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === tab));
-    ({ up: renderUpcoming, vol: renderVolunteers, sched: renderSchedule, set: renderSettings })[tab]();
+    ({ up: renderUpcoming, icrew: renderIcrew, ath: renderAthletes, vol: renderVolunteers, sched: renderSchedule, set: renderSettings })[tab]();
   }
 
   /* ---------------- upcoming ---------------- */
   function renderUpcoming() {
-    let open = 0, filled = 0, openWeek = 0;
+    let open = 0, filled = 0, openWeek = 0, athWeek = 0;
     const weekEnd = new Date(Date.parse(data.today) + 7 * 864e5).toISOString().slice(0, 10);
-    for (const d of data.schedule) for (const s of d.sessions) if (!s.cancelled && !s.past) for (const sl of s.slots) { if (sl.volunteer) filled++; else { open++; if (d.date < weekEnd) openWeek++; } }
+    for (const d of data.schedule) for (const s of d.sessions) if (!s.cancelled && !s.past) {
+      for (const sl of s.slots) { if (sl.volunteer) filled++; else { open++; if (d.date < weekEnd) openWeek++; } }
+      if (d.date < weekEnd) athWeek += (s.athletes || []).length;
+    }
     let html = `<div class="toolbar">
-        <div class="stat"><b class="${openWeek ? 'open' : ''}">${openWeek}</b><span>open in next 7 days</span></div>
+        <div class="stat"><b class="${openWeek ? 'open' : ''}">${openWeek}</b><span>volunteer spots open, next 7 days</span></div>
         <div class="stat"><b>${open}</b><span>open, all ${data.settings.weeksAhead} weeks</span></div>
         <div class="stat"><b>${filled}</b><span>filled</span></div>
+        <div class="stat"><b>${athWeek}</b><span>athlete sign-ups, next 7 days</span></div>
         <span style="flex:1"></span>
         <button class="btn" id="blast">Email open spots to volunteers</button>
         <a class="btn ghost" id="csv" href="#">Download CSV</a>
@@ -163,6 +184,7 @@ dialog h3 { margin: 0 0 10px; }
         html += `<div class="panel"><div class="ph"><h3>${esc(s.label)} <span class="pill ${s.cancelled || s.past ? 'mut' : o ? '' : 'ok'}">${s.cancelled ? 'Cancelled' : s.past ? 'Started' : o ? o + ' open' : 'Full'}</span></h3>
           ${s.past ? '' : s.cancelled ? `<button class="btn ghost sm" data-uncancel="${d.date}|${s.time}">Restore session</button>` : `<button class="btn danger sm" data-cancel="${d.date}|${s.time}">Cancel session…</button>`}</div>
           ${s.cancelled ? `<div class="cancelled-row">Cancelled: ${esc(s.cancelled)}</div>` : ''}
+          ${athBlock(d, s)}
           <div class="scroll"><table style="table-layout:fixed;min-width:560px"><colgroup><col style="width:42%"><col><col style="width:110px"></colgroup><tbody>${s.slots.map((sl) => `<tr>
             <td>${esc(roleText(sl))}${sl.note && sl.athlete ? `<div class="muted">${esc(sl.note)}</div>` : ''}</td>
             <td class="vol-who">${sl.volunteer ? `<b>${esc(sl.volunteer.name)}</b><span class="muted">${esc(sl.volunteer.email)}${sl.volunteer.phone ? ' · ' + esc(sl.volunteer.phone) : ''}</span>` : '<span class="open">OPEN</span>'}</td>
@@ -191,11 +213,12 @@ dialog h3 { margin: 0 0 10px; }
       const [date, time] = b.dataset.cancel.split('|');
       modal(`<h3>Cancel ${esc(new Date(date + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'short', day: 'numeric' }))}, ${fmtTime(time)}?</h3>
         <label class="f" for="cr">Reason (shown to volunteers)</label><input class="in w" id="cr" placeholder="e.g. High winds, Thanksgiving">
-        <label class="check"><input type="checkbox" id="cn" checked> Email the volunteers signed up for this session</label>
+        <label class="check"><input type="checkbox" id="cn" checked> Email the volunteers and athletes signed up for this session</label>
         <p class="muted">Sign-ups are kept, so if you restore the session everyone is still on it. No reminders go out for cancelled sessions.</p>
         <div class="row-btns"><button class="btn ghost" data-close>Back</button><button class="btn danger" id="ok">Cancel session</button></div>`, async () => {
         const r = await api('POST', 'admin/cancel', { date, time, reason: $('cr').value, notify: $('cn').checked });
-        warn(r, `Session cancelled${r.notified ? `; ${r.notified} volunteer${r.notified > 1 ? 's' : ''} emailed` : ''}.`); await load();
+        const told = [r.notified ? `${r.notified} volunteer${r.notified > 1 ? 's' : ''}` : '', r.athletesNotified ? `${r.athletesNotified} athlete${r.athletesNotified > 1 ? 's' : ''}` : ''].filter(Boolean).join(' and ');
+        warn(r, `Session cancelled${told ? `; emailed ${told}` : ''}.`); await load();
       });
     }));
     $('main').querySelectorAll('[data-uncancel]').forEach((b) => (b.onclick = async () => {
@@ -209,6 +232,7 @@ dialog h3 { margin: 0 0 10px; }
         const r = await api('POST', 'admin/remove', { date, slotId, notify: $('rn').checked }); warn(r, 'Removed.'); await load();
       });
     }));
+    wireAthletes();
     $('main').querySelectorAll('[data-assign]').forEach((b) => (b.onclick = () => {
       const [date, slotId] = b.dataset.assign.split('|');
       if (!data.volunteers.length) return toast('Add the volunteer on the Volunteers tab first.', true);
@@ -226,6 +250,133 @@ dialog h3 { margin: 0 0 10px; }
     d.querySelectorAll('[data-close]').forEach((b) => (b.onclick = () => d.close()));
     const ok = d.querySelector('#ok');
     if (ok) ok.onclick = async () => { ok.disabled = true; try { await onOk(); d.close(); } catch (e) { $('merr').textContent = e.message; ok.disabled = false; } };
+  }
+
+  async function download(path, fallback) {
+    try {
+      const r = await fetch('/api/' + path, { headers: { 'x-admin-pass': pass } });
+      if (!r.ok) throw new Error('Download failed');
+      const blob = await r.blob(); const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = (r.headers.get('content-disposition') || '').match(/filename="(.+)"/)?.[1] || fallback; a.click();
+    } catch (err) { toast(err.message, true); }
+  }
+  const longDate = (date) => new Date(date + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'short', day: 'numeric' });
+
+  /* ---------------- athletes on the Upcoming tab ---------------- */
+  // Information only: athlete sign-ups never change volunteer spots.
+  function athBlock(d, s) {
+    if (!s.athleteSession) return '';
+    const list = s.athletes || [], drops = s.athleteDrops || [];
+    const chips = list.map((a) => `<span class="ath-chip" title="${esc(a.contactName ? 'Signed up by ' + a.contactName : '')}">${esc(a.name)}
+        <button class="ic ${a.icrew ? 'yes' : 'no'}" data-icrew="${d.date}|${s.time}|${a.id}|${a.icrew ? 0 : 1}" title="${a.icrew ? 'Entered in iCrew. Click to undo.' : 'Click once you have added this in iCrew.'}">${a.icrew ? 'iCrew ✓' : 'not in iCrew'}</button>
+        ${s.past ? '' : `<button class="x" data-athleave="${d.date}|${s.time}|${a.id}" aria-label="Remove ${esc(a.name)}">✕</button>`}</span>`).join('');
+    const notes = list.filter((a) => a.note).map((a) => `<div class="ath-note"><b>${esc(a.name)}:</b> “${esc(a.note)}”</div>`).join('');
+    return `<div class="ath-box"><span class="lbl">Athletes${list.length ? ` (${list.length})` : ''}</span>${chips || '<span class="muted">None signed up yet</span>'}
+      ${s.past || s.cancelled ? '' : ` <button class="btn ghost sm" data-athjoin="${d.date}|${s.time}">+ Add athlete</button>`}
+      ${notes}${drops.length ? `<div class="drop-line">Cancelled, still in iCrew: ${drops.map((x) => esc(x.name)).join(', ')} (see iCrew to-do)</div>` : ''}</div>`;
+  }
+
+  function wireAthletes() {
+    $('main').querySelectorAll('[data-icrew]').forEach((b) => (b.onclick = async () => {
+      const [date, time, id, done] = b.dataset.icrew.split('|');
+      try { await api('POST', 'admin/icrew-mark', { items: [{ kind: 'add', date, time, id, done: done === '1' }] }); await load(); } catch (e) { toast(e.message, true); }
+    }));
+    $('main').querySelectorAll('[data-athleave]').forEach((b) => (b.onclick = () => {
+      const [date, time, id] = b.dataset.athleave.split('|');
+      const a = data.athletes.find((x) => x.id === id);
+      modal(`<h3>Remove ${esc(a ? a.name : 'this athlete')} from ${esc(longDate(date))}, ${fmtTime(time)}?</h3><p class="muted">Volunteer spots are not changed.</p>
+        <label class="check"><input type="checkbox" id="ln" checked> Email them about the change</label>
+        <div class="row-btns"><button class="btn ghost" data-close>Back</button><button class="btn danger" id="ok">Remove</button></div>`, async () => {
+        const r = await api('POST', 'admin/athlete-leave', { id, date, time, notify: $('ln').checked });
+        warn(r, r.wasInIcrew ? 'Removed. It was in iCrew, so it\'s now on the iCrew to-do list.' : 'Removed.'); await load();
+      });
+    }));
+    $('main').querySelectorAll('[data-athjoin]').forEach((b) => (b.onclick = () => {
+      const [date, time] = b.dataset.athjoin.split('|');
+      const sess = data.schedule.find((d) => d.date === date)?.sessions.find((s) => s.time === time);
+      const taken = new Set((sess?.athletes || []).map((a) => a.id));
+      const avail = data.athletes.filter((a) => !taken.has(a.id));
+      if (!avail.length) return toast(data.athletes.length ? 'Every athlete is already on this session.' : 'Add the athlete on the Athletes tab first.', true);
+      modal(`<h3>Add an athlete to ${esc(longDate(date))}, ${fmtTime(time)}</h3><p class="muted">For athletes who call, text, or tell you in person.</p>
+        <label class="f" for="aa">Athlete</label><select class="in w" id="aa">${avail.map((a) => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('')}</select>
+        <div style="height:8px"></div><label class="f" for="anote">Note (optional)</label><input class="in w" id="anote">
+        <label class="check"><input type="checkbox" id="ann" checked> Email them a confirmation</label>
+        <div class="row-btns"><button class="btn ghost" data-close>Back</button><button class="btn" id="ok">Add</button></div>`, async () => {
+        const r = await api('POST', 'admin/athlete-join', { id: $('aa').value, date, time, note: $('anote').value, notify: $('ann').checked }); warn(r, 'Added.'); await load();
+      });
+    }));
+  }
+
+  /* ---------------- iCrew to-do ---------------- */
+  function renderIcrew() {
+    const { add, remove } = data.icrew;
+    const row = (it) => `<tr class="todo-row${it.past || it.cancelled ? ' dim' : ''}"><td><input type="checkbox" data-pick="${it.kind}|${it.date}|${it.time}|${it.id}" aria-label="Select"></td>
+      <td><b>${esc(it.name)}</b>${it.note ? `<div class="muted">“${esc(it.note)}”</div>` : ''}</td>
+      <td>${esc(it.dateLabel)}, ${esc(it.timeLabel)}${it.cancelled ? ' <span class="pill mut">session cancelled</span>' : ''}${it.past ? ' <span class="pill mut">past</span>' : ''}</td>
+      <td class="hide-sm muted">${it.kind === 'add' ? 'signed up' : 'cancelled'} ${esc(new Date(it.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</td>
+      <td style="text-align:right"><button class="btn ghost sm" data-done="${it.kind}|${it.date}|${it.time}|${it.id}">Done</button></td></tr>`;
+    const section = (title, help, items, kind) => `<div class="panel"><div class="ph"><h3>${title} <span class="pill ${items.length ? '' : 'ok'}">${items.length}</span></h3>
+        ${items.length ? `<span><button class="btn ghost sm" data-all="${kind}">Select all</button> <button class="btn sm" data-donesel="${kind}">Mark selected done</button></span>` : ''}</div>
+        <div class="pb muted" style="padding-bottom:0">${help}</div>
+        <div class="scroll"><table><tbody>${items.map(row).join('') || '<tr><td class="muted" style="border:0;padding:12px 16px">Nothing to do.</td></tr>'}</tbody></table></div></div>`;
+    $('main').innerHTML = `<h2>iCrew to-do</h2>
+      <p class="muted">The app can't connect to iCrew, so this is your checklist for keeping iCrew in step. Mark things done after you make the change in iCrew. You can also tick the <b>not in iCrew</b> tags on the Upcoming tab.</p>
+      ${section('Add to iCrew', 'Athletes who signed up here. Mark them in iCrew as attending that session.', add, 'add')}
+      ${section('Remove from iCrew', 'Athletes who cancelled after you had already added them in iCrew.', remove, 'remove')}
+      <div class="toolbar"><a class="btn ghost" href="#" id="athcsv">Download athlete sign-ups (CSV)</a></div>`;
+    const mark = async (items) => {
+      try { const r = await api('POST', 'admin/icrew-mark', { items: items.map(([kind, date, time, id]) => ({ kind, date, time, id, done: true })) }); toast(`Marked ${r.changed} done.`); await load(); }
+      catch (e) { toast(e.message, true); }
+    };
+    $('main').querySelectorAll('[data-done]').forEach((b) => (b.onclick = () => mark([b.dataset.done.split('|')])));
+    $('main').querySelectorAll('[data-all]').forEach((b) => (b.onclick = () => $('main').querySelectorAll(`[data-pick^="${b.dataset.all}|"]`).forEach((c) => (c.checked = true))));
+    $('main').querySelectorAll('[data-donesel]').forEach((b) => (b.onclick = () => {
+      const picked = [...$('main').querySelectorAll(`[data-pick^="${b.dataset.donesel}|"]:checked`)].map((c) => c.dataset.pick.split('|'));
+      if (!picked.length) return toast('Tick the ones you\'ve done first.', true);
+      mark(picked);
+    }));
+    $('athcsv').onclick = (e) => { e.preventDefault(); download('admin/athlete-export', 'athlete-registrations.csv'); };
+  }
+
+  /* ---------------- athletes ---------------- */
+  function athleteForm(a = {}) {
+    return `<label class="f" for="tn">Athlete's name</label><input class="in w" id="tn" value="${esc(a.name || '')}"><div style="height:8px"></div>
+      <label class="f" for="te">Email for reminders</label><input class="in w" id="te" type="email" value="${esc(a.email || '')}"><div style="height:8px"></div>
+      <label class="f" for="tc">Parent / caregiver name (if they sign up for the athlete)</label><input class="in w" id="tc" value="${esc(a.contactName || '')}"><div style="height:8px"></div>
+      <label class="f" for="tp">Phone (optional)</label><input class="in w" id="tp" type="tel" value="${esc(a.phone || '')}">`;
+  }
+  const athleteFields = () => ({ name: $('tn').value, email: $('te').value, contactName: $('tc').value, phone: $('tp').value });
+
+  function renderAthletes() {
+    const list = data.athletes;
+    $('main').innerHTML = `<div class="toolbar"><div class="stat"><b>${list.length}</b><span>athletes</span></div><span style="flex:1"></span><button class="btn" id="addA">Add athlete</button></div>
+      <div class="panel scroll"><table><thead><tr><th>Athlete</th><th>Email</th><th class="hide-sm">Phone</th><th>Upcoming</th><th></th></tr></thead><tbody>
+      ${list.map((a) => `<tr><td><b>${esc(a.name)}</b>${a.contactName ? `<div class="muted">via ${esc(a.contactName)}</div>` : ''}</td><td><a href="mailto:${esc(a.email)}">${esc(a.email)}</a></td><td class="hide-sm">${esc(a.phone || '')}</td><td>${a.upcoming}</td>
+        <td style="white-space:nowrap;text-align:right"><button class="btn ghost sm" data-edit="${esc(a.id)}">Edit</button> <button class="btn ghost sm" data-copy="${esc(a.key)}">Copy link</button> <button class="btn ghost sm" data-send="${esc(a.id)}">Email link</button> <button class="btn danger sm" data-del="${esc(a.id)}" aria-label="Delete">✕</button></td></tr>`).join('') || '<tr><td colspan="5" class="muted">No athletes yet. Add them here, or share the athlete page link and they\'ll appear as they sign up.</td></tr>'}
+      </tbody></table></div>
+      <p class="muted">Each athlete has a personal link that signs them in. "Copy link" lets you paste it into a text message. One email can be used for more than one athlete (for example, a parent with two kids).</p>`;
+    $('addA').onclick = () => modal(`<h3>Add an athlete</h3>${athleteForm()}
+      <label class="check"><input type="checkbox" id="tw" checked> Email them their personal sign-up link now</label>
+      <div class="row-btns"><button class="btn ghost" data-close>Cancel</button><button class="btn" id="ok">Add</button></div>`, async () => {
+      const r = await api('POST', 'admin/athlete', { ...athleteFields(), sendWelcome: $('tw').checked }); warn(r, 'Athlete added.'); await load();
+    });
+    $('main').querySelectorAll('[data-edit]').forEach((b) => (b.onclick = () => {
+      const a = list.find((x) => x.id === b.dataset.edit);
+      modal(`<h3>Edit athlete</h3>${athleteForm(a)}<div class="row-btns"><button class="btn ghost" data-close>Cancel</button><button class="btn" id="ok">Save</button></div>`, async () => {
+        await api('POST', 'admin/athlete-update', { id: a.id, ...athleteFields() }); toast('Saved.'); await load();
+      });
+    }));
+    $('main').querySelectorAll('[data-copy]').forEach((b) => (b.onclick = async () => {
+      const link = data.base + '/athletes?k=' + encodeURIComponent(b.dataset.copy);
+      try { await navigator.clipboard.writeText(link); toast('Link copied.'); } catch { prompt('Copy this link:', link); }
+    }));
+    $('main').querySelectorAll('[data-send]').forEach((b) => (b.onclick = async () => { try { await api('POST', 'admin/athlete-send-link', { id: b.dataset.send }); toast('Link emailed.'); } catch (e) { toast(e.message, true); } }));
+    $('main').querySelectorAll('[data-del]').forEach((b) => (b.onclick = () => {
+      const a = list.find((x) => x.id === b.dataset.del);
+      modal(`<h3>Delete ${esc(a.name)}?</h3><p>Their personal link will stop working.</p><div class="row-btns"><button class="btn ghost" data-close>Back</button><button class="btn danger" id="ok">Delete</button></div>`, async () => {
+        await api('POST', 'admin/athlete-delete', { id: a.id }); toast('Deleted.'); await load();
+      });
+    }));
   }
 
   /* ---------------- volunteers ---------------- */
@@ -311,7 +462,8 @@ dialog h3 { margin: 0 0 10px; }
         <div class="note-box">Every morning around <b>7 AM</b> (8 AM in summer):<br>
           • Volunteers signed up for a session <b>tomorrow</b> or <b>in 3 days</b> get a reminder.<br>
           • Volunteers with alerts on get a list of spots still open in those sessions.<br>
-          • You get a status email showing who's on each of those sessions and what's open.<br>
+          • Athletes signed up for a session <b>tomorrow</b> or <b>in 3 days</b> get a reminder.<br>
+          • You get a status email showing who's on each of those sessions (volunteers and athletes), what's open, and your iCrew to-do count.<br>
           Cancelled sessions are skipped. Each person gets at most one reminder email a day.</div>
         <div class="toolbar">
           <input class="in" id="tt" type="email" placeholder="Send test to…" value="${esc(s.coordinatorEmail)}" style="min-width:220px">
@@ -332,7 +484,7 @@ dialog h3 { margin: 0 0 10px; }
       try {
         const r = await api('POST', 'admin/run-reminders');
         if (!r.ok) toast(r.error, true);
-        else toast(`Sent ${r.volunteerEmails} volunteer email${r.volunteerEmails === 1 ? '' : 's'}${r.coordinatorDigest ? ' + your status email' : ''}${r.skippedAlreadySent ? ` (${r.skippedAlreadySent} already sent today)` : ''}${r.failed.length ? `. ${r.failed.length} failed.` : '.'}`, r.failed.length > 0);
+        else toast(`Sent ${r.volunteerEmails} volunteer email${r.volunteerEmails === 1 ? '' : 's'}, ${r.athleteEmails} athlete email${r.athleteEmails === 1 ? '' : 's'}${r.coordinatorDigest ? ' + your status email' : ''}${r.skippedAlreadySent ? ` (${r.skippedAlreadySent} already sent today)` : ''}${r.failed.length ? `. ${r.failed.length} failed.` : '.'}`, r.failed.length > 0);
       } catch (err) { toast(err.message, true); }
       $('run').disabled = false;
     };
