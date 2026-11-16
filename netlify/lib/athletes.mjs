@@ -161,7 +161,8 @@ export async function athleteSchedule(store, key, now = new Date()) {
     const sessions = times.map((time) => {
       const c = cfg.cancelled[sessionKey(date, time)];
       const reg = me ? (days[date].regs[time] || {})[me.id] : null;
-      const s = { time, label: fmtTime(time), oneTime: !slotsForDate(cfg, date).some((x) => x.time === time && !x.extra), cancelled: c ? c.reason || 'Cancelled' : null, past: isPast(date, time, now), registered: !!reg, note: reg ? reg.note || '' : '' };
+      const atTime = slotsForDate(cfg, date).filter((x) => x.time === time);
+      const s = { time, label: fmtTime(time), erg: atTime.some((x) => x.erg) && atTime.every((x) => x.erg || isLaunchSlot(x)), oneTime: !atTime.some((x) => !x.extra), cancelled: c ? c.reason || 'Cancelled' : null, past: isPast(date, time, now), registered: !!reg, note: reg ? reg.note || '' : '' };
       if (me) s.usual = usualAthletes(cfg, date, time).some((n) => n.toLowerCase() === me.name.toLowerCase());
       if (reg) mine.push({ date, dateLabel: fmtDate(date), ...s });
       return s;

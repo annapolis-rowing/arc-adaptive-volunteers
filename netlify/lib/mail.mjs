@@ -174,6 +174,8 @@ function athleteLine(s) {
 export function digestEmail(cfg, to, digest, adminLink, icrewCounts = null) {
   const blocks = digest.map((s) => s.cancelled
     ? h2(`${s.when}: ${s.dateLabel}, ${s.time}`) + p(`<i>Cancelled — ${esc(s.cancelled)}</i>`)
+    : s.erg && !s.slots.length
+    ? h2(`${s.when}: ${s.dateLabel}, ${s.time}`) + p(`<span style="color:${MUTED}">Erg · athletes only (no volunteer spots)</span>`) + athleteLine(s)
     : h2(`${s.when}: ${s.dateLabel}, ${s.time}`) + p(`<span style="color:${MUTED}">${s.slots.filter((x) => x.volunteer).length} of ${s.slots.length} volunteer spots filled</span>`) + athleteLine(s) + table(s.slots.map((sl) => `
       <tr><td style="padding:8px 12px;border-top:1px solid ${LINE};color:${INK}">${esc(role(sl))}</td>
       <td style="padding:8px 12px;border-top:1px solid ${LINE};text-align:right;${sl.volunteer ? '' : 'color:#9C2A2A;font-weight:600'}">${sl.volunteer ? esc(sl.volunteer) : 'OPEN'}</td></tr>`).join('')));
@@ -184,7 +186,7 @@ export function digestEmail(cfg, to, digest, adminLink, icrewCounts = null) {
   return {
     to, subject: `Volunteer status: ${open ? open + ' open spot' + (open > 1 ? 's' : '') : 'all filled'} (tomorrow & in 3 days)`,
     html: layout(cfg, p(`Here's where things stand for the sessions tomorrow and in 3 days. Volunteers and athletes signed up for these just got their reminders${open ? ', and volunteers with alerts on were told about the open spots' : ''}.`) + todo + blocks.join('') + button(adminLink, 'Open coordinator page')),
-    text: digest.map((s) => `${s.when}: ${s.dateLabel}, ${s.time}\n` + (s.cancelled ? '  CANCELLED' : (s.athleteSession ? `  Athletes: ${(s.athletes || []).map((a) => a.name).join(', ') || 'none yet'}\n` : '') + textItems(s.slots))).join('\n\n'),
+    text: digest.map((s) => `${s.when}: ${s.dateLabel}, ${s.time}\n` + (s.cancelled ? '  CANCELLED' : (s.erg && !s.slots.length ? '  Erg · athletes only\n' : '') + (s.athleteSession ? `  Athletes: ${(s.athletes || []).map((a) => a.name).join(', ') || 'none yet'}\n` : '') + textItems(s.slots))).join('\n\n'),
   };
 }
 

@@ -13,6 +13,11 @@ import crypto from 'node:crypto';
 export const TZ = 'America/New_York';
 export const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 export const LSO = 'Launch Safety Observer';
+// An erg session is for athletes only: it has no volunteer spot, and volunteers never see it.
+// It's stored as one weekly-schedule row (or one-time row) with `erg: true`.
+export const ERG_BOAT = 'Erg';
+export const ERG_POSITION = 'Athletes only';
+export const isErgSlot = (s) => !!(s && s.erg);
 
 export class UserError extends Error {
   constructor(msg, status = 400) { super(msg); this.status = status; }
@@ -170,11 +175,11 @@ export const sessionKey = (date, time) => `${date}|${time}`;
  * Build the dated schedule: [{ date, sessions: [{ time, cancelled, slots: [...] }] }]
  * `decorate(slot, signup)` adds per-viewer fields to each slot.
  */
-export function buildSchedule(cfg, dates, days, decorate) {
+export function buildSchedule(cfg, dates, days, decorate, { includeErg = false } = {}) {
   const out = [];
   for (const date of dates) {
     if (!inSeason(cfg, date)) continue;
-    const tpl = templateForDay(cfg, date);
+    const tpl = templateForDay(cfg, date).filter((s) => includeErg || !isErgSlot(s));
     if (!tpl.length) continue;
     const sessions = [];
     for (const s of tpl) {
@@ -185,6 +190,7 @@ export function buildSchedule(cfg, dates, days, decorate) {
         sessions.push(sess);
       }
       const su = (days[date] || {})[s.id] || null;
+      if (isErgSlot(s)) { sess.erg = true; if (includeErg) sess.slots.push({ slotId: s.id, erg: true, boat: s.boat, position: s.position, athlete: s.athlete, note: s.note }); continue; }
       sess.slots.push(decorate({ slotId: s.id, boat: s.boat, position: s.position, athlete: s.athlete, note: s.note }, su));
     }
     out.push({ date, label: fmtDate(date), sessions });
@@ -269,6 +275,7 @@ function findTemplateSlot(cfg, date, slotId) {
   if (!isDate(date)) throw new UserError('Invalid date.');
   const s = slotsForDate(cfg, date).find((x) => x.id === slotId);
   if (!s) throw new UserError('That spot is not on the schedule.');
+  if (isErgSlot(s)) throw new UserError('That is an athletes-only erg session, with no volunteer spots.');
   return s;
 }
 
@@ -319,7 +326,7 @@ export async function adminOverview(store, now = new Date()) {
   const schedule = buildSchedule(cfg, dates, days, (slot, su) => {
     const v = su ? vols.byEmail[su.email] : null;
     return { ...slot, volunteer: su ? { email: su.email, name: v ? v.name : su.email, phone: v ? v.phone : '', at: su.at } : null };
-  });
+  }, { includeErg: true });
   const upcomingCount = {};
   for (const d of Object.values(days)) for (const su of Object.values(d)) upcomingCount[su.email] = (upcomingCount[su.email] || 0) + 1;
   const volunteers = Object.values(vols.byEmail)
@@ -353,9 +360,12 @@ export async function saveSlots(store, rows, now = new Date()) {
     const day = +r.day;
     if (!(day >= 0 && day <= 6)) throw new UserError('Every row needs a day.');
     if (!isTime(r.time)) throw new UserError('Every row needs a start time.');
-    const position = clean(r.position, 40);
+    const erg = !!r.erg;
+    const position = erg ? ERG_POSITION : clean(r.position, 40);
     if (!position) throw new UserError('Every row needs a position.');
-    return { id: r.id && cfg.slots.some((x) => x.id === r.id) ? r.id : null, day, time: r.time, boat: clean(r.boat, 20), position, athlete: clean(r.athlete, 50), note: clean(r.note, 120) };
+    const row = { id: r.id && cfg.slots.some((x) => x.id === r.id) ? r.id : null, day, time: r.time, boat: erg ? ERG_BOAT : clean(r.boat, 20), position, athlete: erg ? '' : clean(r.athlete, 50), note: clean(r.note, 120) };
+    if (erg) row.erg = true;
+    return row;
   });
   // Rows that disappeared or moved to a different day/time must not have future sign-ups.
   const today = todayET(now);
@@ -398,6 +408,7 @@ export async function addOneTimeSession(store, { date, time, slots }, now = new 
   if (!Array.isArray(slots) || !slots.length) throw new UserError('Add at least one spot.');
   if (slots.length > 30) throw new UserError('That is too many spots for one session.');
   const rows = slots.map((r) => {
+    if (r.erg) return { boat: ERG_BOAT, position: ERG_POSITION, athlete: '', note: clean(r.note, 120), erg: true };
     const position = clean(r.position, 40);
     if (!position) throw new UserError('Every spot needs a position.');
     return { boat: clean(r.boat, 20), position, athlete: clean(r.athlete, 50), note: clean(r.note, 120) };
@@ -484,10 +495,12 @@ export async function planReminders(store, now = new Date()) {
   const digest = [];
   const openAll = [];
   for (const t of targets) {
-    const sched = buildSchedule(cfg, [t.date], days, (slot, su) => ({ ...slot, su }))[0];
+    const sched = buildSchedule(cfg, [t.date], days, (slot, su) => ({ ...slot, su }), { includeErg: true })[0];
     if (!sched) continue;
     for (const sess of sched.sessions) {
+      sess.slots = sess.slots.filter((s) => !s.erg);
       if (sess.cancelled) { digest.push({ ...t, dateLabel: sched.label, time: sess.label, cancelled: sess.cancelled, slots: [] }); continue; }
+      if (sess.erg && !sess.slots.length) { digest.push({ ...t, dateLabel: sched.label, time: sess.label, erg: true, slots: [] }); continue; }
       const inSession = new Set(sess.slots.filter((s) => s.su).map((s) => s.su.email));
       const dslots = [];
       for (const sl of sess.slots) {

@@ -136,7 +136,7 @@ dialog.wide { width: min(760px, calc(100vw - 24px)); }
     return d;
   }
   const fmtTime = (t) => { let h = +t.slice(0, 2); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${t.slice(3)} ${ap}`; };
-  const roleText = (s) => /launch/i.test(s.boat) || /launch|safety/i.test(s.position) ? 'Launch safety observer' : `${s.boat ? s.boat + ' · ' : ''}${s.position}${s.athlete ? ' — ' + s.athlete : ''}`;
+  const roleText = (s) => s.erg ? 'Erg · athletes only' : /launch/i.test(s.boat) || /launch|safety/i.test(s.position) ? 'Launch safety observer' : `${s.boat ? s.boat + ' · ' : ''}${s.position}${s.athlete ? ' — ' + s.athlete : ''}`;
   const warn = (r, ok) => r.emailWarning ? toast(ok + ' ' + r.emailWarning, true) : toast(ok);
 
   function gate(msg) {
@@ -169,7 +169,7 @@ dialog.wide { width: min(760px, calc(100vw - 24px)); }
     let open = 0, filled = 0, openWeek = 0, athWeek = 0;
     const weekEnd = new Date(Date.parse(data.today) + 7 * 864e5).toISOString().slice(0, 10);
     for (const d of data.schedule) for (const s of d.sessions) if (!s.cancelled && !s.past) {
-      for (const sl of s.slots) { if (sl.volunteer) filled++; else { open++; if (d.date < weekEnd) openWeek++; } }
+      for (const sl of s.slots) { if (sl.erg) continue; if (sl.volunteer) filled++; else { open++; if (d.date < weekEnd) openWeek++; } }
       if (d.date < weekEnd) athWeek += (s.athletes || []).length;
     }
     let html = `<div class="toolbar">
@@ -186,17 +186,18 @@ dialog.wide { width: min(760px, calc(100vw - 24px)); }
     for (const d of data.schedule) {
       html += `<div class="day-h">${esc(d.label)}</div>`;
       for (const s of d.sessions) {
-        const o = s.slots.filter((x) => !x.volunteer).length;
+        const o = s.slots.filter((x) => !x.volunteer && !x.erg).length;
+        const ergOnly = s.slots.length > 0 && s.slots.every((x) => x.erg);
         const nobody = !s.slots.some((x) => x.volunteer) && !(s.athletes || []).length;
-        html += `<div class="panel"><div class="ph"><h3>${esc(s.label)} <span class="pill ${s.cancelled || s.past ? 'mut' : o ? '' : 'ok'}">${s.cancelled ? 'Cancelled' : s.past ? 'Started' : o ? o + ' open' : 'Full'}</span>${s.oneTime ? ' <span class="pill one">One-time</span>' : ''}</h3>
+        html += `<div class="panel"><div class="ph"><h3>${esc(s.label)} <span class="pill ${s.cancelled || s.past ? 'mut' : ergOnly ? 'one' : o ? '' : 'ok'}">${s.cancelled ? 'Cancelled' : s.past ? 'Started' : ergOnly ? 'Erg · athletes only' : o ? o + ' open' : 'Full'}</span>${s.oneTime ? ' <span class="pill one">One-time</span>' : ''}</h3>
           <span style="display:flex;gap:6px;flex-wrap:wrap">${s.past ? '' : s.cancelled ? `<button class="btn ghost sm" data-uncancel="${d.date}|${s.time}">Restore session</button>` : `<button class="btn ghost sm" data-move="${d.date}|${s.time}">Move…</button><button class="btn danger sm" data-cancel="${d.date}|${s.time}">Cancel session…</button>`}
           ${s.oneTime && !s.past && nobody ? `<button class="btn danger sm" data-delone="${d.date}|${s.time}">Delete</button>` : ''}</span></div>
           ${s.cancelled ? `<div class="cancelled-row">Cancelled: ${esc(s.cancelled)}</div>` : ''}
           ${athBlock(d, s)}
           <div class="scroll"><table style="table-layout:fixed;min-width:560px"><colgroup><col style="width:42%"><col><col style="width:110px"></colgroup><tbody>${s.slots.map((sl) => `<tr>
             <td>${esc(roleText(sl))}${sl.note && sl.athlete ? `<div class="muted">${esc(sl.note)}</div>` : ''}</td>
-            <td class="vol-who">${sl.volunteer ? `<b>${esc(sl.volunteer.name)}</b><span class="muted">${esc(sl.volunteer.email)}${sl.volunteer.phone ? ' · ' + esc(sl.volunteer.phone) : ''}</span>` : '<span class="open">OPEN</span>'}</td>
-            <td style="text-align:right;white-space:nowrap">${s.past ? '' : sl.volunteer ? `<button class="btn danger sm" data-remove="${d.date}|${sl.slotId}">Remove</button>` : `<button class="btn ghost sm" data-assign="${d.date}|${sl.slotId}">Assign…</button>`}</td>
+            <td class="vol-who">${sl.erg ? '<span class="muted">No volunteer spots. Volunteers don\'t see this session.</span>' : sl.volunteer ? `<b>${esc(sl.volunteer.name)}</b><span class="muted">${esc(sl.volunteer.email)}${sl.volunteer.phone ? ' · ' + esc(sl.volunteer.phone) : ''}</span>` : '<span class="open">OPEN</span>'}</td>
+            <td style="text-align:right;white-space:nowrap">${s.past || sl.erg ? '' : sl.volunteer ? `<button class="btn danger sm" data-remove="${d.date}|${sl.slotId}">Remove</button>` : `<button class="btn ghost sm" data-assign="${d.date}|${sl.slotId}">Assign…</button>`}</td>
           </tr>`).join('')}</tbody></table></div></div>`;
       }
     }
@@ -295,7 +296,8 @@ dialog.wide { width: min(760px, calc(100vw - 24px)); }
       g.slots.push(sl);
     }
     weekly.sort((a, b) => a.day - b.day || a.time.localeCompare(b.time));
-    let rows = (from ? from.slots : []).map((x) => ({ boat: x.boat, position: x.position, athlete: x.athlete, note: x.note }));
+    const copyRow = (x) => (x.erg ? { erg: true, boat: 'Erg', position: 'Athletes only', athlete: '', note: '' } : { boat: x.boat, position: x.position, athlete: x.athlete, note: x.note });
+    let rows = (from ? from.slots : []).map(copyRow);
     const tmr = new Date(Date.parse(data.today + 'T12:00:00Z') + 864e5).toISOString().slice(0, 10);
     modal(`<h3>${from ? `Move ${esc(longDate(from.date))}, ${fmtTime(from.time)}` : 'Add a one-time session'}</h3>
       <p class="muted">${from ? 'Pick the new date and time. The spots are copied over. People signed up for the original are <b>not</b> moved; they get the cancellation email and can sign up again.' : 'For an extra practice on one date. It shows on the volunteer and athlete pages like any other session. The weekly schedule is not changed.'}</p>
@@ -306,7 +308,7 @@ dialog.wide { width: min(760px, calc(100vw - 24px)); }
       </div>
       <label class="f" style="margin-top:12px">Spots</label>
       <div class="scroll"><table class="ot-rows"><thead><tr><th>Boat</th><th>Position</th><th>Athlete</th><th>Note / bow level</th><th></th></tr></thead><tbody id="otr"></tbody></table></div>
-      <div style="display:flex;gap:8px;margin-top:6px"><button class="btn ghost sm" id="otAddRow">+ Rowing spot</button><button class="btn ghost sm" id="otAddLaunch">+ Launch spot</button></div>
+      <div style="display:flex;gap:8px;margin-top:6px"><button class="btn ghost sm" id="otAddRow">+ Rowing spot</button><button class="btn ghost sm" id="otAddLaunch">+ Launch spot</button><button class="btn ghost sm" id="otAddErg">+ Erg (athletes only)</button></div>
       ${from ? `<label class="check"><input type="checkbox" id="otCancel" checked> Cancel the original session${from.hasPeople ? ' and email the people signed up for it' : ''}</label>` : ''}
       <div class="row-btns"><button class="btn ghost" data-close>Back</button><button class="btn" id="ok">${from ? 'Move session' : 'Add session'}</button></div>`, async () => {
       const date = $('otd').value, time = $('ott').value;
@@ -322,7 +324,8 @@ dialog.wide { width: min(760px, calc(100vw - 24px)); }
       toast(msg); await load();
     }, true);
     const draw = () => {
-      $('otr').innerHTML = rows.map((r, i) => `<tr data-i="${i}">
+      $('otr').innerHTML = rows.map((r, i) => r.erg ? `<tr data-i="${i}"><td colspan="4"><b>Erg · athletes only</b> <span class="muted">(no volunteer spots)</span></td>
+        <td><button class="btn danger sm" data-otrm="${i}" aria-label="Remove">✕</button></td></tr>` : `<tr data-i="${i}">
         <td><input class="in" data-f="boat" value="${esc(r.boat)}" style="min-width:60px" list="otBoats"></td>
         <td><input class="in" data-f="position" value="${esc(r.position)}" style="min-width:130px" list="otPos"></td>
         <td><input class="in" data-f="athlete" value="${esc(r.athlete)}" style="min-width:110px"></td>
@@ -336,12 +339,13 @@ dialog.wide { width: min(760px, calc(100vw - 24px)); }
     draw();
     if (!from) $('otc').onchange = () => {
       const g = weekly[+$('otc').value];
-      rows = g ? g.slots.map((x) => ({ boat: x.boat, position: x.position, athlete: x.athlete, note: x.note })) : [];
+      rows = g ? g.slots.map(copyRow) : [];
       if (g) $('ott').value = g.time;
       draw();
     };
     $('otAddRow').onclick = () => { rows.push({ boat: '2x', position: 'Bow', athlete: '', note: 'Level 2 bow required' }); draw(); };
     $('otAddLaunch').onclick = () => { rows.push({ boat: 'Launch', position: LSO, athlete: '', note: '' }); draw(); };
+    $('otAddErg').onclick = () => { if (!rows.some((r) => r.erg)) rows.push({ erg: true, boat: 'Erg', position: 'Athletes only', athlete: '', note: '' }); draw(); };
   }
 
   /* ---------------- athletes on the Upcoming tab ---------------- */
@@ -494,20 +498,20 @@ dialog.wide { width: min(760px, calc(100vw - 24px)); }
   function renderSchedule() {
     if (!draft) draft = data.slots.map((s) => ({ ...s }));
     const sorted = draft.map((s, i) => ({ s, i })).sort((a, b) => a.s.day - b.s.day || a.s.time.localeCompare(b.s.time));
-    $('main').innerHTML = `<h2>Weekly schedule</h2><p class="muted">This repeats every week. Each row is one spot a volunteer can claim. The note shows next to the athlete's name (e.g. the bow level required).</p>
+    $('main').innerHTML = `<h2>Weekly schedule</h2><p class="muted">This repeats every week. Each row is one spot a volunteer can claim. The note shows next to the athlete's name (e.g. the bow level required). An <b>Erg · athletes only</b> row makes an erg session that athletes sign up for and volunteers never see.</p>
       <div class="panel scroll"><table class="sched"><thead><tr><th>Day</th><th>Start</th><th>Boat</th><th>Position</th><th>Athlete</th><th>Note / bow level</th><th></th></tr></thead><tbody>
       ${sorted.map(({ s, i }) => `<tr data-i="${i}">
         <td><select class="in" data-f="day" style="min-width:125px">${DAYS.map((d, n) => `<option value="${n}" ${n === +s.day ? 'selected' : ''}>${d}</option>`).join('')}</select></td>
         <td><input class="in" type="time" data-f="time" value="${esc(s.time)}" style="min-width:110px"></td>
-        <td><input class="in" data-f="boat" value="${esc(s.boat)}" style="min-width:70px" list="boats"></td>
+        ${s.erg ? `<td colspan="4"><b>Erg · athletes only</b> <span class="muted">(no volunteer spots)</span></td>` : `<td><input class="in" data-f="boat" value="${esc(s.boat)}" style="min-width:70px" list="boats"></td>
         <td><input class="in" data-f="position" value="${esc(s.position)}" style="min-width:150px" list="positions"></td>
         <td><input class="in" data-f="athlete" value="${esc(s.athlete)}" style="min-width:130px"></td>
-        <td><input class="in" data-f="note" value="${esc(s.note)}" style="min-width:160px"></td>
+        <td><input class="in" data-f="note" value="${esc(s.note)}" style="min-width:160px"></td>`}
         <td><button class="btn danger sm" data-rm="${i}" aria-label="Delete row">✕</button></td></tr>`).join('')}
       </tbody></table></div>
       <datalist id="boats"><option>2x</option><option>1x</option><option>4x</option><option>Launch</option></datalist>
       <datalist id="positions"><option>Bow</option><option>Stroke</option><option>2 Seat</option><option>3 Seat</option><option>${LSO}</option></datalist>
-      <div class="toolbar"><button class="btn ghost" id="addRow">+ Rowing spot</button><button class="btn ghost" id="addLaunch">+ Launch spot</button><span style="flex:1"></span><button class="btn ghost" id="reset">Discard changes</button><button class="btn" id="save">Save schedule</button></div>
+      <div class="toolbar"><button class="btn ghost" id="addRow">+ Rowing spot</button><button class="btn ghost" id="addLaunch">+ Launch spot</button><button class="btn ghost" id="addErg">+ Erg session (athletes only)</button><span style="flex:1"></span><button class="btn ghost" id="reset">Discard changes</button><button class="btn" id="save">Save schedule</button></div>
       <div class="err" id="serr"></div>`;
     $('main').querySelectorAll('tr[data-i] [data-f]').forEach((el) => (el.oninput = () => {
       const s = draft[+el.closest('tr').dataset.i]; s[el.dataset.f] = el.dataset.f === 'day' ? +el.value : el.value;
@@ -516,10 +520,11 @@ dialog.wide { width: min(760px, calc(100vw - 24px)); }
     const last = draft[draft.length - 1] || { day: 1, time: '08:00' };
     $('addRow').onclick = () => { draft.push({ day: last.day, time: last.time, boat: '2x', position: 'Bow', athlete: '', note: 'Level 2 bow required' }); renderSchedule(); };
     $('addLaunch').onclick = () => { draft.push({ day: last.day, time: last.time, boat: 'Launch', position: LSO, athlete: '', note: '' }); renderSchedule(); };
+    $('addErg').onclick = () => { draft.push({ day: 1, time: '18:15', boat: 'Erg', position: 'Athletes only', athlete: '', note: '', erg: true }); renderSchedule(); };
     $('reset').onclick = () => { draft = null; renderSchedule(); };
     $('save').onclick = async () => {
       $('save').disabled = true; $('serr').textContent = '';
-      try { await api('POST', 'admin/slots', { slots: draft }); draft = null; toast('Schedule saved. The volunteer page is updated.'); await load(); }
+      try { await api('POST', 'admin/slots', { slots: draft }); draft = null; toast('Schedule saved. The volunteer and athlete pages are updated.'); await load(); }
       catch (e) { $('serr').textContent = e.message; $('save').disabled = false; }
     };
   }

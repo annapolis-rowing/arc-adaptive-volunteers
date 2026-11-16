@@ -229,7 +229,7 @@ textarea.in { min-height: 90px; resize: vertical; }
       if (s.usual) mid = `<span class="tag">Your usual time</span>`;
       act = `<button class="btn" data-join="${d.date}|${s.time}">Sign me up</button>`;
     }
-    return `<div class="sess${s.past ? ' past' : ''}"><div class="time">${esc(s.label)}${s.oneTime ? '<div><span class="tag">Extra session</span></div>' : ''}</div><div class="mid">${mid}</div><div class="act">${act}</div></div>`;
+    return `<div class="sess${s.past ? ' past' : ''}"><div class="time">${esc(s.label)}${s.erg ? '<div><span class="tag">Erg</span></div>' : ''}${s.oneTime ? '<div><span class="tag">Extra session</span></div>' : ''}</div><div class="mid">${mid}</div><div class="act">${act}</div></div>`;
   }
 
   function renderFooter() {
