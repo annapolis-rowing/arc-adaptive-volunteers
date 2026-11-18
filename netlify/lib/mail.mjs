@@ -231,7 +231,7 @@ export function athleteLinkEmail(cfg, list) {
 export function athleteJoinedEmail(cfg, a, item, link, byCoordinator = false) {
   return {
     to: a.email, subject: `You're registered: ${item.dateLabel}, ${item.time}`,
-    html: layout(cfg, hello(a) + p(byCoordinator ? `The coordinator registered${forWhom(a) || ' you'} for this session:` : `You're registered${forWhom(a)}. See you on the water!`) + table(sessionRows([item])) +
+    html: layout(cfg, hello(a) + p(byCoordinator ? `The coordinator registered${forWhom(a) || ' you'} for this session:` : `You're registered${forWhom(a)}. See you at practice!`) + table(sessionRows([item])) +
       p(`We'll remind you 3 days before and the day before. Can't make it? Use the button below.`) + button(link, 'See or change my sessions'), { link, ...A }),
     text: `Registered${a.contactName ? ' (' + a.name + ')' : ''}:\n${textSessions([item])}\n\nSee or change: ${link}`,
   };
