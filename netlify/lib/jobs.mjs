@@ -1,5 +1,5 @@
 // The daily reminder run, shared by the scheduled function and the coordinator's "run now" button.
-import { planReminders, sentToday, markSent, loadConfig, fmtTime, sessionKey } from './core.mjs';
+import { planReminders, sentToday, markSent, loadConfig, fmtTime, sessionKey, notifyList } from './core.mjs';
 import { reminderEmail, digestEmail, linkFor, sendAll, athleteReminderEmail, athleteLinkFor } from './mail.mjs';
 import { planAthleteReminders, athleteTimes, icrewTodo } from './athletes.mjs';
 
@@ -30,14 +30,14 @@ export async function runReminders(store, mailer, now = new Date()) {
   msgs.push(...athMsgs);
 
   const DIGEST = '__coordinator__';
-  if (plan.cfg.coordinatorEmail && plan.digest.length && !already.has(DIGEST)) {
+  if (notifyList(plan.cfg).length && plan.digest.length && !already.has(DIGEST)) {
     for (const d of plan.digest) {
       const raw = athleteTimes(plan.cfg, d.date).find((t) => fmtTime(t) === d.time);
       d.athleteSession = !!raw;
       d.athletes = raw ? ath.bySession[sessionKey(d.date, raw)] || [] : [];
     }
     const todo = await icrewTodo(store, now);
-    msgs.push({ key: DIGEST, ...digestEmail(plan.cfg, plan.cfg.coordinatorEmail, plan.digest, base + '/admin', { add: todo.add.length, remove: todo.remove.length }) });
+    msgs.push({ key: DIGEST, ...digestEmail(plan.cfg, notifyList(plan.cfg).join(', '), plan.digest, base + '/admin', { add: todo.add.length, remove: todo.remove.length }) });
   }
   const res = await sendAll(mailer, plan.cfg, msgs);
   await markSent(store, plan.today, res.sent);

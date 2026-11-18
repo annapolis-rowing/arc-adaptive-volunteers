@@ -537,6 +537,7 @@ dialog.wide { width: min(760px, calc(100vw - 24px)); }
         <div><label class="f" for="pn">Program name</label><input class="in w" id="pn" value="${esc(s.programName)}"></div>
         <div><label class="f" for="cn">Coordinator name</label><input class="in w" id="cn" value="${esc(s.coordinatorName)}"></div>
         <div><label class="f" for="ce">Coordinator email</label><input class="in w" id="ce" type="email" value="${esc(s.coordinatorEmail)}"><div class="muted">Gets the daily status email and late-cancellation alerts. Volunteer replies go here.</div></div>
+        <div><label class="f" for="ne">Also email <span class="muted">(optional)</span></label><input class="in w" id="ne" value="${esc(s.notifyEmails || '')}" placeholder="coach@example.org, another@example.org"><div class="muted">These people (e.g. coaches) also get the daily status email and late-cancellation alerts. Separate addresses with commas.</div></div>
         <div><label class="f" for="wa">Weeks open for sign-up</label><select class="in w" id="wa">${[1,2,3,4,6,8,12].map((n) => `<option ${n === +s.weeksAhead ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
         <div><label class="f" for="ss">Season starts <span class="muted">(optional)</span></label><input class="in w" id="ss" type="date" value="${esc(s.seasonStart)}"></div>
         <div><label class="f" for="se">Season ends <span class="muted">(optional)</span></label><input class="in w" id="se" type="date" value="${esc(s.seasonEnd)}"></div>
@@ -562,7 +563,7 @@ dialog.wide { width: min(760px, calc(100vw - 24px)); }
       </div></div>`;
     $('sf').onsubmit = async (ev) => {
       ev.preventDefault();
-      try { await api('POST', 'admin/settings', { programName: $('pn').value, coordinatorName: $('cn').value, coordinatorEmail: $('ce').value, weeksAhead: +$('wa').value, seasonStart: $('ss').value, seasonEnd: $('se').value }); toast('Settings saved.'); load(); }
+      try { await api('POST', 'admin/settings', { programName: $('pn').value, coordinatorName: $('cn').value, coordinatorEmail: $('ce').value, notifyEmails: $('ne').value, weeksAhead: +$('wa').value, seasonStart: $('ss').value, seasonEnd: $('se').value }); toast('Settings saved.'); load(); }
       catch (err) { toast(err.message, true); }
     };
     $('test').onclick = async () => { try { const r = await api('POST', 'admin/test-email', { to: $('tt').value }); toast(r.message); } catch (err) { toast(err.message, true); } };

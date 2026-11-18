@@ -180,12 +180,13 @@ export function digestEmail(cfg, to, digest, adminLink, icrewCounts = null) {
       <tr><td style="padding:8px 12px;border-top:1px solid ${LINE};color:${INK}">${esc(role(sl))}</td>
       <td style="padding:8px 12px;border-top:1px solid ${LINE};text-align:right;${sl.volunteer ? '' : 'color:#9C2A2A;font-weight:600'}">${sl.volunteer ? esc(sl.volunteer) : 'OPEN'}</td></tr>`).join('')));
   const open = digest.reduce((n, s) => n + (s.cancelled ? 0 : s.slots.filter((x) => !x.volunteer).length), 0);
+  const hasVol = digest.some((s) => s.slots.length);
   const todo = icrewCounts && (icrewCounts.add || icrewCounts.remove)
     ? `<div style="background:#fff6e0;border:1px solid #f0d58a;border-radius:8px;padding:10px 12px;margin:0 0 14px;font-size:14px"><b>iCrew to-do:</b> ${[icrewCounts.add ? `${icrewCounts.add} athlete registration${icrewCounts.add > 1 ? 's' : ''} to add` : '', icrewCounts.remove ? `${icrewCounts.remove} cancellation${icrewCounts.remove > 1 ? 's' : ''} to remove` : ''].filter(Boolean).join(', ')}. See the <b>iCrew to-do</b> tab.</div>`
     : '';
   return {
-    to, subject: `Volunteer status: ${open ? open + ' open spot' + (open > 1 ? 's' : '') : 'all filled'} (tomorrow & in 3 days)`,
-    html: layout(cfg, p(`Here's where things stand for the sessions tomorrow and in 3 days. Volunteers and athletes signed up for these just got their reminders${open ? ', and volunteers with alerts on were told about the open spots' : ''}.`) + todo + blocks.join('') + button(adminLink, 'Open coordinator page')),
+    to, subject: hasVol ? `Volunteer status: ${open ? open + ' open spot' + (open > 1 ? 's' : '') : 'all filled'} (tomorrow & in 3 days)` : 'Session status: who\'s coming (tomorrow & in 3 days)',
+    html: layout(cfg, p(hasVol ? `Here's where things stand for the sessions tomorrow and in 3 days. Volunteers and athletes signed up for these just got their reminders${open ? ', and volunteers with alerts on were told about the open spots' : ''}.` : `Here's who's signed up for the sessions tomorrow and in 3 days. Athletes signed up for these just got their reminders.`) + todo + blocks.join('') + button(adminLink, 'Open coordinator page')),
     text: digest.map((s) => `${s.when}: ${s.dateLabel}, ${s.time}\n` + (s.cancelled ? '  CANCELLED' : (s.erg && !s.slots.length ? '  Erg · athletes only\n' : '') + (s.athleteSession ? `  Athletes: ${(s.athletes || []).map((a) => a.name).join(', ') || 'none yet'}\n` : '') + textItems(s.slots))).join('\n\n'),
   };
 }

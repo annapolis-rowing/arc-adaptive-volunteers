@@ -98,7 +98,7 @@ export function makeHandler({ store, mailer, now = () => new Date() }) {
       const v = await me(body.k);
       const r = await core.release(store, v.email, body.date, body.slotId, { now: now() });
       const cfg = await core.loadConfig(store);
-      if (r.late && cfg.coordinatorEmail) await trySend(cfg, mail.lateCancelEmail(cfg, cfg.coordinatorEmail, v, itemFor(cfg, r.date, r.slot), base(req) + '/admin'));
+      if (r.late && core.notifyList(cfg).length) await trySend(cfg, mail.lateCancelEmail(cfg, core.notifyList(cfg).join(', '), v, itemFor(cfg, r.date, r.slot), base(req) + '/admin'));
       return { ok: true };
     },
 
@@ -147,7 +147,7 @@ export function makeHandler({ store, mailer, now = () => new Date() }) {
       const a = await athMe(body.k);
       const r = await ath.athleteLeave(store, a.id, body.date, body.time, { now: now() });
       const cfg = await core.loadConfig(store);
-      if (r.late && cfg.coordinatorEmail) await trySend(cfg, mail.athleteLateDropEmail(cfg, cfg.coordinatorEmail, a, athItem(r.date, r.time, r.removed.note), base(req) + '/admin', r.removed.icrew));
+      if (r.late && core.notifyList(cfg).length) await trySend(cfg, mail.athleteLateDropEmail(cfg, core.notifyList(cfg).join(', '), a, athItem(r.date, r.time, r.removed.note), base(req) + '/admin', r.removed.icrew));
       return { ok: true };
     },
 

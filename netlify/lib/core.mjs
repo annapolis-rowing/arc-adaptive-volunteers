@@ -54,6 +54,7 @@ export function defaultConfig() {
     programName: 'ARC Adaptive Rowing',
     coordinatorName: '',
     coordinatorEmail: '',
+    notifyEmails: '', // extra people (e.g. coaches) who also get the daily status email and late-cancellation alerts
     weeksAhead: 4,
     seasonStart: '',
     seasonEnd: '',
@@ -337,7 +338,13 @@ export async function adminOverview(store, now = new Date()) {
   return { today, settings, slots, schedule, volunteers };
 }
 
-const SETTING_KEYS = ['programName', 'coordinatorName', 'coordinatorEmail', 'weeksAhead', 'seasonStart', 'seasonEnd'];
+const SETTING_KEYS = ['programName', 'coordinatorName', 'coordinatorEmail', 'notifyEmails', 'weeksAhead', 'seasonStart', 'seasonEnd'];
+
+/** Everyone who gets coordinator alerts: the coordinator plus anyone in "Also email". */
+export function notifyList(cfg) {
+  const all = [cfg.coordinatorEmail, ...String(cfg.notifyEmails || '').split(/[\s,;]+/)].map(normEmail).filter(Boolean);
+  return [...new Set(all)];
+}
 export async function saveSettings(store, input) {
   const s = {};
   for (const k of SETTING_KEYS) if (input[k] !== undefined) s[k] = input[k];
@@ -346,6 +353,13 @@ export async function saveSettings(store, input) {
   if (s.coordinatorEmail !== undefined) {
     s.coordinatorEmail = normEmail(s.coordinatorEmail);
     if (s.coordinatorEmail && !EMAIL_RE.test(s.coordinatorEmail)) throw new UserError('Coordinator email looks invalid.');
+  }
+  if (s.notifyEmails !== undefined) {
+    const list = [...new Set(String(s.notifyEmails).split(/[\s,;]+/).map(normEmail).filter(Boolean))];
+    const bad = list.find((e) => !EMAIL_RE.test(e));
+    if (bad) throw new UserError(`"${bad}" doesn't look like an email address.`);
+    if (list.length > 10) throw new UserError('Add at most 10 extra email addresses.');
+    s.notifyEmails = list.join(', ');
   }
   if (s.weeksAhead !== undefined) { s.weeksAhead = Math.round(+s.weeksAhead); if (!(s.weeksAhead >= 1 && s.weeksAhead <= 12)) throw new UserError('Weeks shown must be 1–12.'); }
   for (const k of ['seasonStart', 'seasonEnd']) if (s[k] !== undefined && s[k] !== '' && !isDate(s[k])) throw new UserError('Season dates must be valid dates.');
