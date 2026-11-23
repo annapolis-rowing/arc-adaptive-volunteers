@@ -399,10 +399,7 @@ label.f span { font-weight: 400; color: var(--muted); }
         e.preventDefault(); $('go').disabled = true; $('err').textContent = '';
         try {
           const r = await api('POST', 'register', { name: $('rName').value, email: $('rEmail').value, phone: $('rPhone').value, alerts: $('rAlerts').checked });
-          if (r.existing) {
-            dialog(`<h3>Check your email</h3><p>${esc(r.message)}</p><p style="font-size:14px;color:var(--muted)">This keeps anyone else from making changes under your name.</p><div class="row-btns"><button class="btn" data-close>OK</button></div>`);
-            return;
-          }
+          if (r.existing) { openCode(r.email, r.message); return; }
           key = r.key; store.set('arcVolKey', key);
           if (pending) {
             try { await api('POST', 'claim', { k: key, ...pending }); $('dlg').close(); toast("You're signed up! Check your email for a confirmation."); }
@@ -415,15 +412,41 @@ label.f span { font-weight: 400; color: var(--muted); }
   }
 
   function openLostLink() {
-    dialog(`<h3>Email me my link</h3><p style="font-size:15px">Enter the email you signed up with. We'll send a link that signs you in on this device.</p>
+    dialog(`<h3>Email me my link</h3><p style="font-size:15px">Enter the email you signed up with. We'll email you a 6-digit code to type in here.</p>
       <form id="lf" novalidate><label class="f" for="lEmail">Email</label><input class="in" id="lEmail" type="email" autocomplete="email" inputmode="email">
       <div class="err" id="err"></div>
-      <div class="row-btns"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn" id="go">Send link</button></div></form>`, () => {
+      <div class="row-btns"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn" id="go">Send code</button></div></form>`, () => {
       $('lEmail').focus();
       $('lf').onsubmit = async (e) => {
         e.preventDefault(); $('go').disabled = true;
-        try { const r = await api('POST', 'link', { email: $('lEmail').value }); dialog(`<h3>Check your email</h3><p>${esc(r.message)}</p><div class="row-btns"><button class="btn" data-close>OK</button></div>`); }
+        try { const r = await api('POST', 'link', { email: $('lEmail').value }); openCode(r.email, r.message); }
         catch (err) { $('err').textContent = err.message; $('go').disabled = false; }
+      };
+    });
+  }
+
+  // Step 2 of "Email me my link": type the 6-digit code from the email.
+  // This is what signs in a saved home-screen app, since email links always open in the browser.
+  function openCode(email, message) {
+    dialog(`<h3>Enter your code</h3><p style="font-size:15px">${esc(message)}</p>
+      <form id="cf" novalidate><label class="f" for="cCode">6-digit code</label>
+      <input class="in" id="cCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" pattern="[0-9 ]*" style="font-size:26px;letter-spacing:.3em;text-align:center">
+      <div class="err" id="err"></div>
+      <div class="row-btns"><button type="button" class="btn ghost" id="resend">Send a new code</button><button class="btn" id="go">Sign in</button></div></form>
+      <p style="font-size:14px;color:var(--muted)">On this phone or computer you can also tap the button in the email.</p>`, () => {
+      $('cCode').focus();
+      $('resend').onclick = async () => {
+        $('resend').disabled = true;
+        try { const r = await api('POST', 'link', { email }); $('err').textContent = ''; toast('Check your email. If you asked in the last 2 minutes, use the code you already got.'); }
+        catch (err) { $('err').textContent = err.message; }
+        setTimeout(() => { if ($('resend')) $('resend').disabled = false; }, 5000);
+      };
+      $('cf').onsubmit = async (e) => {
+        e.preventDefault(); $('go').disabled = true; $('err').textContent = '';
+        try {
+          const r = await api('POST', 'signin-code', { email, code: $('cCode').value });
+          key = r.key; store.set('arcVolKey', key); $('dlg').close(); toast("You're signed in on this device."); refresh();
+        } catch (err) { $('err').textContent = err.message; $('go').disabled = false; $('cCode').select(); }
       };
     });
   }

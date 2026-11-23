@@ -219,13 +219,13 @@ export function athleteWelcomeEmail(cfg, a, link) {
 }
 
 /** One email with a button per athlete (a caregiver may manage more than one). */
-export function athleteLinkEmail(cfg, list) {
+export function athleteLinkEmail(cfg, list, code = null) {
   const a = list[0].athlete;
   const buttons = list.map(({ athlete, link }) => button(link, list.length > 1 ? `Open ${athlete.name}'s page` : 'Open my sign-up page')).join('');
   return {
-    to: a.email, subject: `Your ${cfg.programName} sign-up link`,
-    html: layout(cfg, hello(a) + p(`Here's your link to the rowing sign-up page. It signs you in on this device.`) + buttons + p(`<span style="color:${MUTED}">Didn't ask for this? You can ignore it.</span>`), { ...A }),
-    text: list.map(({ athlete, link }) => `${athlete.name}: ${link}`).join('\n'),
+    to: a.email, subject: code ? `${code} is your ${cfg.programName} sign-in code` : `Your ${cfg.programName} sign-up link`,
+    html: layout(cfg, hello(a) + codeBlock(code) + p(code ? `Or tap the button to sign in on this device:` : `Here's your link to the rowing sign-up page. It signs you in on this device.`) + buttons + p(`<span style="color:${MUTED}">Didn't ask for this? You can ignore it.</span>`), { ...A }),
+    text: (code ? `Your sign-in code: ${code}\n\n` : '') + list.map(({ athlete, link }) => `${athlete.name}: ${link}`).join('\n'),
   };
 }
 
@@ -281,10 +281,18 @@ export function testEmail(cfg, to) {
   };
 }
 
-export function linkEmail(cfg, v, link) {
+/** The 6-digit code, big and easy to read, for typing into a saved home-screen app. */
+export const codeBlock = (code) => code ? `
+  <div style="margin:4px 0 16px;padding:14px;border:1px solid ${LINE};border-radius:10px;text-align:center">
+    <div style="font-size:13px;color:${MUTED};margin-bottom:4px">Your sign-in code</div>
+    <div style="font-size:32px;font-weight:700;letter-spacing:.25em;color:${NAVY};font-family:Menlo,Consolas,monospace">${esc(code)}</div>
+    <div style="font-size:13px;color:${MUTED};margin-top:4px">Type it into the page or the app on your home screen. Good for 30 minutes.</div>
+  </div>` : '';
+
+export function linkEmail(cfg, v, link, code = null) {
   return {
-    to: v.email, subject: `Your ${cfg.programName} volunteer link`,
-    html: layout(cfg, p(`Hi ${esc(v.name.split(' ')[0])},`) + p(`Here's your personal link to the volunteer sign-up page. It signs you in on this device.`) + button(link, 'Open my volunteer page') + p(`<span style="color:${MUTED}">Didn't ask for this? You can ignore it.</span>`), { link }),
-    text: `Your volunteer link: ${link}`,
+    to: v.email, subject: code ? `${code} is your ${cfg.programName} sign-in code` : `Your ${cfg.programName} volunteer link`,
+    html: layout(cfg, p(`Hi ${esc(v.name.split(' ')[0])},`) + codeBlock(code) + p(code ? `Or tap the button to sign in on this device:` : `Here's your personal link to the volunteer sign-up page. It signs you in on this device.`) + button(link, 'Open my volunteer page') + p(`<span style="color:${MUTED}">Didn't ask for this? You can ignore it.</span>`), { link }),
+    text: `${code ? `Your sign-in code: ${code}\n\n` : ''}Your volunteer link: ${link}`,
   };
 }

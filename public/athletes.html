@@ -335,7 +335,7 @@ textarea.in { min-height: 90px; resize: vertical; }
         if (other && $('rContact').value.trim().length < 2) { $('err').textContent = 'Please enter your name.'; $('go').disabled = false; return; }
         try {
           const r = await api('POST', 'athlete/register', { name: $('rName').value, email: $('rEmail').value, phone: $('rPhone').value, contactName: other ? $('rContact').value : '' });
-          if (r.existing) { dialog(`<h3 id="dlgTitle">Check your email</h3><p>${esc(r.message)}</p><div class="row-btns"><button class="btn" data-close>OK</button></div>`); return; }
+          if (r.existing) { openCode(r.email, r.message); return; }
           key = r.key; store.set(KEY, key);
           if (pending) {
             try { await api('POST', 'athlete/join', { k: key, ...pending, note: $('rNote').value }); $('dlg').close(); toast("You're signed up! We emailed a confirmation and your personal link."); }
@@ -348,15 +348,48 @@ textarea.in { min-height: 90px; resize: vertical; }
   }
 
   function openLostLink() {
-    dialog(`<h3 id="dlgTitle">Email me my link</h3><p>Enter the email you signed up with. We'll send a link that signs you in on this device.</p>
+    dialog(`<h3 id="dlgTitle">Email me my link</h3><p>Enter the email you signed up with. We'll email you a 6-digit code to type in here.</p>
       <form id="lf" novalidate><label class="f" for="lEmail">Email</label><input class="in" id="lEmail" type="email" autocomplete="email" inputmode="email">
       <div class="err" id="err" role="alert"></div>
-      <div class="row-btns"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn" id="go">Send link</button></div></form>`, () => {
+      <div class="row-btns"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn" id="go">Send code</button></div></form>`, () => {
       $('lEmail').focus();
       $('lf').onsubmit = async (e) => {
         e.preventDefault(); $('go').disabled = true;
-        try { const r = await api('POST', 'athlete/link', { email: $('lEmail').value }); dialog(`<h3 id="dlgTitle">Check your email</h3><p>${esc(r.message)}</p><div class="row-btns"><button class="btn" data-close>OK</button></div>`); }
+        try { const r = await api('POST', 'athlete/link', { email: $('lEmail').value }); openCode(r.email, r.message); }
         catch (err) { $('err').textContent = err.message; $('go').disabled = false; }
+      };
+    });
+  }
+
+  // Step 2 of "Email me my link": type the 6-digit code from the email.
+  // This is what signs in a saved home-screen app, since email links always open in the browser.
+  function openCode(email, message) {
+    dialog(`<h3 id="dlgTitle">Enter your code</h3><p>${esc(message)}</p>
+      <form id="cf" novalidate><label class="f" for="cCode">6-digit code</label>
+      <input class="in" id="cCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" style="font-size:30px;letter-spacing:.3em;text-align:center">
+      <div class="err" id="err" role="alert"></div>
+      <div class="row-btns"><button type="button" class="btn ghost" id="resend">Send a new code</button><button class="btn" id="go">Sign in</button></div></form>
+      <p class="help">On this phone or computer you can also tap the button in the email.</p>`, () => {
+      $('cCode').focus();
+      $('resend').onclick = async () => {
+        $('resend').disabled = true;
+        try { await api('POST', 'athlete/link', { email }); $('err').textContent = ''; toast('Check your email. If you asked in the last 2 minutes, use the code you already got.'); }
+        catch (err) { $('err').textContent = err.message; }
+        setTimeout(() => { if ($('resend')) $('resend').disabled = false; }, 5000);
+      };
+      const done = (k) => { key = k; store.set(KEY, key); $('dlg').close(); toast("You're signed in on this device."); refresh(); };
+      $('cf').onsubmit = async (e) => {
+        e.preventDefault(); $('go').disabled = true; $('err').textContent = '';
+        try {
+          const r = await api('POST', 'athlete/signin-code', { email, code: $('cCode').value });
+          if (r.key) return done(r.key);
+          // A caregiver with more than one athlete on this email picks who to sign in as.
+          dialog(`<h3 id="dlgTitle">Who are you signing in for?</h3>
+            ${r.choices.map((c, i) => `<button class="btn big" style="margin-top:10px" data-pick="${i}">${esc(c.name)}</button>`).join('')}
+            <p class="help">You can switch later: tap the name at the top, then Sign out here.</p>`, () => {
+            document.querySelectorAll('[data-pick]').forEach((b) => (b.onclick = () => done(r.choices[+b.dataset.pick].key)));
+          });
+        } catch (err) { $('err').textContent = err.message; $('go').disabled = false; $('cCode').select(); }
       };
     });
   }

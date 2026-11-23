@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import * as core from './core.mjs';
 import * as mail from './mail.mjs';
 import * as ath from './athletes.mjs';
+import { issueCode, checkCode } from './signin.mjs';
 import { runReminders } from './jobs.mjs';
 
 const env = (k) => (globalThis.Netlify?.env?.get?.(k) ?? process.env[k] ?? '').trim();
@@ -50,7 +51,8 @@ export function makeHandler({ store, mailer, now = () => new Date() }) {
   }
   async function sendAthleteLinks(req, cfg, list) {
     if (!list.length) return null;
-    return trySend(cfg, mail.athleteLinkEmail(cfg, list.map((a) => ({ athlete: a, link: athLink(req, a) }))));
+    const code = await issueCode(store, 'a', list[0].email);
+    return trySend(cfg, mail.athleteLinkEmail(cfg, list.map((a) => ({ athlete: a, link: athLink(req, a) })), code));
   }
 
   const routes = {
@@ -67,8 +69,8 @@ export function makeHandler({ store, mailer, now = () => new Date() }) {
       const cfg = await core.loadConfig(store);
       if (r.existing) {
         const v = await core.linkRequest(store, r.existing.email);
-        if (v && !v.throttled) await trySend(cfg, mail.linkEmail(cfg, v, link(req, v)));
-        return { existing: true, message: `You're already registered. We emailed your personal link to ${r.existing.email} — open it to continue.` };
+        if (v && !v.throttled) await trySend(cfg, mail.linkEmail(cfg, v, link(req, v), await issueCode(store, 'v', v.email)));
+        return { existing: true, email: r.existing.email, message: `You're already registered. We emailed a sign-in code to ${r.existing.email}.` };
       }
       const warn = await trySend(cfg, mail.welcomeEmail(cfg, r.created, link(req, r.created)));
       return { key: r.created.key, emailWarning: warn };
@@ -77,8 +79,15 @@ export function makeHandler({ store, mailer, now = () => new Date() }) {
     'POST link': async (req, url, body) => {
       const v = await core.linkRequest(store, body.email);
       const cfg = await core.loadConfig(store);
-      if (v && !v.throttled) await trySend(cfg, mail.linkEmail(cfg, v, link(req, v)));
-      return { message: `If ${core.normEmail(body.email)} is registered, a sign-in link is on its way. Check your inbox (and spam folder).` };
+      if (v && !v.throttled) await trySend(cfg, mail.linkEmail(cfg, v, link(req, v), await issueCode(store, 'v', v.email)));
+      return { email: core.normEmail(body.email), message: `If ${core.normEmail(body.email)} is registered, a sign-in code is on its way. Check your inbox (and spam folder).` };
+    },
+
+    'POST signin-code': async (req, url, body) => {
+      await checkCode(store, 'v', body.email, body.code);
+      const v = (await core.loadVolunteers(store)).byEmail[core.normEmail(body.email)];
+      if (!v) throw new core.UserError('We could not find that volunteer.');
+      return { key: v.key };
     },
 
     'POST profile': async (req, url, body) => {
@@ -111,7 +120,7 @@ export function makeHandler({ store, mailer, now = () => new Date() }) {
       if (r.existing) {
         const l = await ath.athleteLinkRequest(store, r.existing.email);
         if (!l.throttled) await sendAthleteLinks(req, cfg, l.list);
-        return { existing: true, message: `${r.existing.name} is already registered. We emailed the personal link to ${r.existing.email} — open it to continue.` };
+        return { existing: true, email: r.existing.email, message: `${r.existing.name} is already registered. We emailed a sign-in code to ${r.existing.email}.` };
       }
       const warn = await trySend(cfg, mail.athleteWelcomeEmail(cfg, r.created, athLink(req, r.created)));
       return { key: r.created.key, emailWarning: warn };
@@ -121,7 +130,15 @@ export function makeHandler({ store, mailer, now = () => new Date() }) {
       const l = await ath.athleteLinkRequest(store, body.email);
       const cfg = await core.loadConfig(store);
       if (!l.throttled) await sendAthleteLinks(req, cfg, l.list);
-      return { message: `If ${core.normEmail(body.email)} is registered, a sign-in link is on its way. Check your inbox (and spam folder).` };
+      return { email: core.normEmail(body.email), message: `If ${core.normEmail(body.email)} is registered, a sign-in code is on its way. Check your inbox (and spam folder).` };
+    },
+
+    'POST athlete/signin-code': async (req, url, body) => {
+      await checkCode(store, 'a', body.email, body.code);
+      const email = core.normEmail(body.email);
+      const list = Object.values((await ath.loadAthletes(store)).byId).filter((a) => a.email === email).sort((x, y) => x.name.localeCompare(y.name));
+      if (!list.length) throw new core.UserError('We could not find that athlete.');
+      return list.length === 1 ? { key: list[0].key } : { choices: list.map((a) => ({ name: a.name, key: a.key })) };
     },
 
     'POST athlete/profile': async (req, url, body) => {
