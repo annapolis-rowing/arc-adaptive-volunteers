@@ -239,12 +239,21 @@ label.f span { font-weight: 400; color: var(--muted); }
     renderMine(); renderWeeks(); renderDays(); renderFooter();
   }
 
+
+  // Remembers who a code was just sent to, so the code box can be reopened from the page
+  // (phones often close the box while you switch to your email).
+  const PENDING = 'signinPending';
+  const pendingEmail = () => { try { const p = JSON.parse(store.get(PENDING) || 'null'); return p && Date.now() - p.at < 30 * 60 * 1000 ? p.email : null; } catch { return null; } };
+
   function renderMine() {
     const box = $('mineBox');
     if (!data.me) {
       box.innerHTML = `<div class="panel intro"><p><b>Welcome!</b> Pick any open spot below and tap <b>Sign up</b>. The first time, we'll ask for your name and email so we can send you reminders <b>3 days before</b> and <b>the day before</b> you're on the water.</p>
-        <p class="alt" style="margin:0">Already signed up before? <button id="lostLink">Email me my link</button></p></div>`;
+        ${pendingEmail() ? `<p style="margin:0 0 10px"><button class="btn" id="haveCode">Enter my sign-in code</button></p>` : ''}
+        <p class="alt" style="margin:0">Already signed up before? <button id="lostLink">Email me my link</button> · <button id="haveCode2">I have a code</button></p></div>`;
       $('lostLink').onclick = openLostLink;
+      if ($('haveCode')) $('haveCode').onclick = () => openCode(pendingEmail());
+      $('haveCode2').onclick = () => openCode(pendingEmail());
       return;
     }
     const upcoming = data.mine.filter((m) => !m.past);
@@ -428,23 +437,28 @@ label.f span { font-weight: 400; color: var(--muted); }
   // Step 2 of "Email me my link": type the 6-digit code from the email.
   // This is what signs in a saved home-screen app, since email links always open in the browser.
   function openCode(email, message) {
+    if (email) store.set(PENDING, JSON.stringify({ email, at: Date.now() }));
+    if (email && data && !data.me) renderMine();
+    message ||= email ? `We emailed a 6-digit code to ${email}.` : 'Enter your email and the 6-digit code we sent you.';
     dialog(`<h3>Enter your code</h3><p style="font-size:15px">${esc(message)}</p>
-      <form id="cf" novalidate><label class="f" for="cCode">6-digit code</label>
+      <form id="cf" novalidate>${email ? '' : `<label class="f" for="cEmail">Email</label><input class="in" id="cEmail" type="email" autocomplete="email" inputmode="email">`}<label class="f" for="cCode">6-digit code</label>
       <input class="in" id="cCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" pattern="[0-9 ]*" style="font-size:26px;letter-spacing:.3em;text-align:center">
       <div class="err" id="err"></div>
       <div class="row-btns"><button type="button" class="btn ghost" id="resend">Send a new code</button><button class="btn" id="go">Sign in</button></div></form>
       <p style="font-size:14px;color:var(--muted)">On this phone or computer you can also tap the button in the email.</p>`, () => {
-      $('cCode').focus();
+      (email ? $('cCode') : $('cEmail')).focus();
+      const em = () => email || $('cEmail').value.trim();
       $('resend').onclick = async () => {
         $('resend').disabled = true;
-        try { const r = await api('POST', 'link', { email }); $('err').textContent = ''; toast('Check your email. If you asked in the last 2 minutes, use the code you already got.'); }
+        try { const r = await api('POST', 'link', { email: em() }); if (!email) store.set(PENDING, JSON.stringify({ email: em(), at: Date.now() })); $('err').textContent = ''; toast('Check your email. If you asked in the last 2 minutes, use the code you already got.'); }
         catch (err) { $('err').textContent = err.message; }
         setTimeout(() => { if ($('resend')) $('resend').disabled = false; }, 5000);
       };
       $('cf').onsubmit = async (e) => {
         e.preventDefault(); $('go').disabled = true; $('err').textContent = '';
         try {
-          const r = await api('POST', 'signin-code', { email, code: $('cCode').value });
+          const r = await api('POST', 'signin-code', { email: em(), code: $('cCode').value });
+          store.set(PENDING, null);
           key = r.key; store.set('arcVolKey', key); $('dlg').close(); toast("You're signed in on this device."); refresh();
         } catch (err) { $('err').textContent = err.message; $('go').disabled = false; $('cCode').select(); }
       };

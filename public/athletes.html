@@ -180,13 +180,22 @@ textarea.in { min-height: 90px; resize: vertical; }
     renderMine(); renderDays(); renderFooter();
   }
 
+
+  // Remembers who a code was just sent to, so the code box can be reopened from the page
+  // (phones often close the box while you switch to your email).
+  const PENDING = 'signinPending';
+  const pendingEmail = () => { try { const p = JSON.parse(store.get(PENDING) || 'null'); return p && Date.now() - p.at < 30 * 60 * 1000 ? p.email : null; } catch { return null; } };
+
   function renderMine() {
     const box = $('mineBox');
     if (!data.me) {
       box.innerHTML = `<div class="panel lead"><p><b>Welcome!</b> Pick a session below and tap <b>Sign me up</b>. The first time, we'll ask for a name and an email so we can send reminders.</p>
         <p>Parents, caregivers and aides can sign up for an athlete too.</p>
-        <p class="help">Signed up before on another phone or computer? <button class="textbtn" id="lost">Email me my link</button></p></div>`;
+        ${pendingEmail() ? `<p><button class="btn big" id="haveCode">Enter my sign-in code</button></p>` : ''}
+        <p class="help">Signed up before on another phone or computer? <button class="textbtn" id="lost">Email me my link</button> · <button class="textbtn" id="haveCode2">I have a code</button></p></div>`;
       $('lost').onclick = openLostLink;
+      if ($('haveCode')) $('haveCode').onclick = () => openCode(pendingEmail());
+      $('haveCode2').onclick = () => openCode(pendingEmail());
       return;
     }
     const up = data.mine.filter((m) => !m.past);
@@ -364,16 +373,20 @@ textarea.in { min-height: 90px; resize: vertical; }
   // Step 2 of "Email me my link": type the 6-digit code from the email.
   // This is what signs in a saved home-screen app, since email links always open in the browser.
   function openCode(email, message) {
+    if (email) store.set(PENDING, JSON.stringify({ email, at: Date.now() }));
+    if (email && data && !data.me) renderMine();
+    message ||= email ? `We emailed a 6-digit code to ${email}.` : 'Enter your email and the 6-digit code we sent you.';
     dialog(`<h3 id="dlgTitle">Enter your code</h3><p>${esc(message)}</p>
-      <form id="cf" novalidate><label class="f" for="cCode">6-digit code</label>
+      <form id="cf" novalidate>${email ? '' : `<label class="f" for="cEmail">Email</label><input class="in" id="cEmail" type="email" autocomplete="email" inputmode="email">`}<label class="f" for="cCode">6-digit code</label>
       <input class="in" id="cCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" style="font-size:30px;letter-spacing:.3em;text-align:center">
       <div class="err" id="err" role="alert"></div>
       <div class="row-btns"><button type="button" class="btn ghost" id="resend">Send a new code</button><button class="btn" id="go">Sign in</button></div></form>
       <p class="help">On this phone or computer you can also tap the button in the email.</p>`, () => {
-      $('cCode').focus();
+      (email ? $('cCode') : $('cEmail')).focus();
+      const em = () => email || $('cEmail').value.trim();
       $('resend').onclick = async () => {
         $('resend').disabled = true;
-        try { await api('POST', 'athlete/link', { email }); $('err').textContent = ''; toast('Check your email. If you asked in the last 2 minutes, use the code you already got.'); }
+        try { await api('POST', 'athlete/link', { email: em() }); if (!email) store.set(PENDING, JSON.stringify({ email: em(), at: Date.now() })); $('err').textContent = ''; toast('Check your email. If you asked in the last 2 minutes, use the code you already got.'); }
         catch (err) { $('err').textContent = err.message; }
         setTimeout(() => { if ($('resend')) $('resend').disabled = false; }, 5000);
       };
@@ -381,7 +394,8 @@ textarea.in { min-height: 90px; resize: vertical; }
       $('cf').onsubmit = async (e) => {
         e.preventDefault(); $('go').disabled = true; $('err').textContent = '';
         try {
-          const r = await api('POST', 'athlete/signin-code', { email, code: $('cCode').value });
+          const r = await api('POST', 'athlete/signin-code', { email: em(), code: $('cCode').value });
+          store.set(PENDING, null);
           if (r.key) return done(r.key);
           // A caregiver with more than one athlete on this email picks who to sign in as.
           dialog(`<h3 id="dlgTitle">Who are you signing in for?</h3>
