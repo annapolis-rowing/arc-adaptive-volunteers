@@ -318,7 +318,7 @@ textarea.in { min-height: 90px; resize: vertical; }
         <div class="err" id="err" role="alert"></div>
         <div class="row-btns"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn" id="go">${pending ? 'Sign me up' : 'Continue'}</button></div>
       </form>
-      <p class="help">Signed up before? <button class="textbtn" id="lost">Email me my link instead</button></p>`, () => {
+      <p class="help">Signed up before? <button class="textbtn" id="lostDlg">Email me my link instead</button></p>`, () => {
       $('rOther').onchange = () => {
         const on = $('rOther').checked;
         $('otherBox').hidden = !on;
@@ -327,7 +327,7 @@ textarea.in { min-height: 90px; resize: vertical; }
         (on ? $('rContact') : $('rName')).focus();
       };
       $('rName').focus();
-      $('lost').onclick = openLostLink;
+      $('lostDlg').onclick = openLostLink;
       $('rf').onsubmit = async (e) => {
         e.preventDefault(); $('go').disabled = true; $('err').textContent = '';
         const other = $('rOther').checked;
