@@ -1,6 +1,6 @@
 {
  "name": "Adaptive Coordinator",
- "short_name": "ARC Coordinator",
+ "short_name": "ARA Coordinator",
  "start_url": "/admin",
  "scope": "/",
  "display": "standalone",

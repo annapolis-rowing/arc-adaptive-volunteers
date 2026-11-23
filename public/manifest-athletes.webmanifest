@@ -1,6 +1,6 @@
 {
  "name": "Adaptive Rowing Sign-Up",
- "short_name": "ARC Rowing",
+ "short_name": "ARA Rowing",
  "start_url": "/athletes",
  "scope": "/",
  "display": "standalone",

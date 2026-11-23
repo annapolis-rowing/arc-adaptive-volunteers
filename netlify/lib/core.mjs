@@ -1,4 +1,4 @@
-// Core logic for the ARC Adaptive Rowing volunteer app.
+// Core logic for the ARA Adaptive Rowing volunteer app.
 // Storage-agnostic: every function takes a `store` with get/set (see store.mjs)
 // so the same code runs on Netlify Blobs and in local tests.
 //
@@ -51,7 +51,7 @@ const DEFAULT_SLOTS = [
 
 export function defaultConfig() {
   return {
-    programName: 'ARC Adaptive Rowing',
+    programName: 'ARA Adaptive Rowing',
     coordinatorName: '',
     coordinatorEmail: '',
     notifyEmails: '', // extra people (e.g. coaches) who also get the daily status email and late-cancellation alerts
@@ -124,7 +124,9 @@ export async function mutate(store, key, init, fn) {
 
 export async function loadConfig(store) {
   const cur = await store.get('config');
-  return cur ? { ...defaultConfig(), ...cur.data } : defaultConfig();
+  const cfg = cur ? { ...defaultConfig(), ...cur.data } : defaultConfig();
+  if (cfg.programName === 'ARC Adaptive Rowing') cfg.programName = 'ARA Adaptive Rowing'; // renamed Nov 2026
+  return cfg;
 }
 export const mutateConfig = (store, fn) => mutate(store, 'config', defaultConfig, fn);
 

@@ -1,4 +1,4 @@
-# ARC Adaptive Rowing – Volunteer & Athlete Sign-Up
+# ARA Adaptive Rowing – Volunteer & Athlete Sign-Up
 
 A web app volunteers open on their phone to see which Adaptive sessions still need help, claim a spot, and cancel if plans change. Athletes use their own simpler page to sign up for sessions. It emails reminders automatically. It runs on one free Netlify site, set up the same way as the Winter Challenge app.
 
