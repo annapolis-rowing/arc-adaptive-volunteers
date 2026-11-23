@@ -1,0 +1,21 @@
+{
+ "name": "Adaptive Coordinator",
+ "short_name": "ARC Coordinator",
+ "start_url": "/admin",
+ "scope": "/",
+ "display": "standalone",
+ "background_color": "#13aced",
+ "theme_color": "#1F3B57",
+ "icons": [
+  {
+   "src": "/icon-admin-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "/icon-admin-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  }
+ ]
+}
